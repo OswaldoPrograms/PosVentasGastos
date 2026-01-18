@@ -1,0 +1,40 @@
+{
+    "background_color": "#ffffff",
+    "dir": "ltr",
+    "display": "standalone",
+    "name": "Ventas y Gastos POS",
+    "orientation": "any",
+    "scope": "/",
+    "short_name": "POSVtasGtos",
+    "start_url": "/",
+    "theme_color": "#6C5CE7",
+    "id": "1",
+    "description": "AAA",
+    "icons": [
+        {
+            "src": "icon-192.png",
+            "sizes": "192x192",
+            "type": "image/png"
+        },
+        {
+            "src": "icon-512.png",
+            "sizes": "512x512",
+            "type": "image/png"
+        }
+    ],
+    "screenshots": [
+        {
+            "src": "screenshot-desktop.png",
+            "sizes": "1280x720",
+            "type": "image/png",
+            "form_factor": "wide",
+            "label": "Desktop View"
+        },
+        {
+            "src": "screenshot-mobile.png",
+            "sizes": "750x1334",
+            "type": "image/png",
+            "label": "Mobile View"
+        }
+    ]
+}
