@@ -316,6 +316,34 @@ body {
     background: transparent;
 }
 
+/* Presentations container: grid on desktop, horizontal scroll on small screens */
+.presentations-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.8rem;
+    margin-bottom: 1rem;
+}
+.presentation-item { /* individual box inside presentations */
+    box-sizing: border-box;
+}
+
+@media (max-width: 480px) {
+    .presentations-grid {
+        display: flex;
+        gap: 0.6rem;
+        overflow-x: auto;
+        padding-bottom: 0.4rem;
+        -webkit-overflow-scrolling: touch;
+    }
+    .presentations-grid .presentation-item {
+        min-width: 220px;
+        flex: 0 0 auto;
+    }
+    /* Optional: hide scrollbar for cleaner look */
+    .presentations-grid::-webkit-scrollbar { height: 8px; }
+    .presentations-grid::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.08); border-radius: 8px; }
+}
+
 /**
  * IMAGEN DEL PRODUCTO
  * Mostrada en las tarjetas de productos

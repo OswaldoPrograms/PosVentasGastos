@@ -728,13 +728,13 @@ const Actions = {
                 
                 <div class="form-group">
                     <label>Presentaciones Disponibles</label>
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.8rem; margin-bottom: 1rem;">
+                    <div class="presentations-grid">
                         ${presentations.map(pres => {
                             const isSelected = productPresentations.some(pp => pp.id === pres.id);
                             const selectedEntry = productPresentations.find(pp => pp.id === pres.id) || {};
                             const customPrice = selectedEntry.price || '';
                             return `
-                                <label style="display: flex; align-items: center; gap: 0.5rem; padding: 0.6rem; border: 2px solid ${isSelected ? 'var(--primary)' : '#e0e0e0'}; border-radius: 8px; cursor: pointer; background-color: ${isSelected ? 'rgba(108, 92, 231, 0.05)' : 'white'}; transition: all 0.2s;">
+                                <label class="presentation-item" style="display: flex; align-items: center; gap: 0.5rem; padding: 0.6rem; border: 2px solid ${isSelected ? 'var(--primary)' : '#e0e0e0'}; border-radius: 8px; cursor: pointer; background-color: ${isSelected ? 'rgba(108, 92, 231, 0.05)' : 'white'}; transition: all 0.2s;">
                                     <input type="checkbox" name="presentation" value="${pres.id}" ${isSelected ? 'checked' : ''} onchange="Actions.updatePresentationSelection()">
                                     <div style="flex:1;">
                                         <strong>${pres.name}</strong>
