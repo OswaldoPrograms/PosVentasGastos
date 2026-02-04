@@ -484,7 +484,10 @@ textarea:focus {
     background-color: rgba(0, 0, 0, 0.5);
     display: flex;
     justify-content: center;
-    align-items: center;
+    /* Allow the modal content to scroll if it's taller than the viewport
+       and avoid the overlay forcing the whole page to overflow. */
+    align-items: flex-start;
+    padding: 4vh 0; /* give some space from top/bottom */
     z-index: 1000;
     backdrop-filter: blur(4px);  /* Efecto de desenfoque en el fondo */
     opacity: 0;
@@ -504,6 +507,10 @@ textarea:focus {
     box-shadow: var(--shadow-hover);
     transform: scale(0.9);
     animation: scaleUp 0.2s forwards;  /* Se agranda al aparecer */
+    /* Ensure very tall modals become scrollable inside the modal box */
+    max-height: 90vh;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch; /* smoother scrolling on mobile */
 }
 
 /**
