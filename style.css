@@ -328,16 +328,16 @@ body {
 }
 
 @media (max-width: 480px) {
+    /* En móvil apilamos las presentaciones en columna para evitar scroll lateral */
     .presentations-grid {
-        display: flex;
+        display: block;
         gap: 0.6rem;
-        overflow-x: auto;
-        padding-bottom: 0.4rem;
+        padding-bottom: 0.2rem;
         -webkit-overflow-scrolling: touch;
     }
     .presentations-grid .presentation-item {
-        min-width: 220px;
-        flex: 0 0 auto;
+        width: 100%;
+        margin-bottom: 0.6rem;
     }
     /* Optional: hide scrollbar for cleaner look */
     .presentations-grid::-webkit-scrollbar { height: 8px; }
@@ -593,6 +593,14 @@ textarea:focus {
 
     /* Inputs and controls should wrap and not force horizontal scroll */
     input, select, textarea { font-size: 0.95rem; }
+
+    /* Ensure main content has enough bottom padding to be visible above fixed bottom nav */
+    #main-content {
+        padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 140px);
+    }
+
+    /* Extra spacing for the grid so the last card is fully visible */
+    .grid { padding-bottom: 1rem; }
 }
 
 /* --- MODALES/VENTANAS EMERGENTES --- */
