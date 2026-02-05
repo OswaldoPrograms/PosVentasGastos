@@ -307,6 +307,8 @@ body {
 }
 .product-body {
     padding: 1rem 1rem 1.5rem 1rem;
+    background: var(--bg-card);
+    border-radius: 0 0 var(--border-radius) var(--border-radius);
 }
 .presentation-pill {
     padding: 0.25rem 0.6rem;
@@ -314,6 +316,18 @@ body {
     font-size: 0.75rem;
     font-weight: 700;
     background: transparent;
+}
+
+/* Asegurar que el texto de la descripción tenga buen contraste */
+.product-description {
+    min-height: 1.2em;
+}
+
+/* Modo oscuro: ajustar contraste de pills de presentación */
+@media (prefers-color-scheme: dark) {
+    .presentation-pill {
+        opacity: 0.9;
+    }
 }
 
 /* Presentations container: grid on desktop, horizontal scroll on small screens */
@@ -885,10 +899,35 @@ textarea:focus {
 /* Make sure inner presentation boxes in POS look neat */
 .pos-product-card .count-display { font-size: 1.25rem; }
 
+/* Asegurar buen contraste para títulos en tarjetas POS */
+.pos-product-card h4 {
+    color: var(--text-main);
+}
+
+/* En modo oscuro, forzar texto claro para los títulos */
+@media (prefers-color-scheme: dark) {
+    .pos-product-card h4 {
+        color: #dfe6e9;
+        text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+    }
+    
+    .pos-product-card {
+        background: var(--bg-card);
+    }
+}
+
 /* Presentación dentro del POS: caja que contiene nombre/precio y controles */
 .pos-pres-item {
     background-color: #f5f5f5; /* claro por defecto */
-    color: var(--text-main);
+    color: #2D3436; /* texto oscuro para fondos claros */
+}
+
+/* En modo oscuro, ajustar el fondo de las cajas de presentación */
+@media (prefers-color-scheme: dark) {
+    .pos-pres-item {
+        background-color: rgba(255, 255, 255, 0.08);
+        color: var(--text-main);
+    }
 }
 
 /**
@@ -991,20 +1030,36 @@ textarea:focus {
  */
 .btn-minus {
     background-color: #dfe6e9;
-    color: var(--text-main);
+    color: #2D3436;
+}
+
+/**
+ * BOTÓN MÁS (+) EN CONTADOR
+ */
+.btn-plus {
+    background-color: var(--primary);
+    color: white;
+}
+
+/* Ajustes para modo oscuro en botones de contador */
+@media (prefers-color-scheme: dark) {
+    .btn-minus {
+        background-color: rgba(255, 255, 255, 0.15);
+        color: #dfe6e9;
+    }
+    
+    .btn-plus {
+        background-color: var(--primary);
+        color: white;
+    }
 }
 
 /* Ajustes para modo oscuro específicos del POS */
 @media (prefers-color-scheme: dark) {
     .pos-pres-item {
-        background-color: rgba(255,255,255,0.03) !important;
-        color: var(--text-main) !important;
-        box-shadow: inset 0 1px 0 rgba(255,255,255,0.02);
-    }
-
-    .btn-minus {
         background-color: rgba(255,255,255,0.06);
         color: var(--text-main);
+        box-shadow: inset 0 1px 0 rgba(255,255,255,0.02);
     }
 
     .count-display {

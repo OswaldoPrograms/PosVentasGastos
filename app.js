@@ -1266,12 +1266,20 @@ const Actions = {
         if (from) {
             const fromDate = new Date(from);
             fromDate.setHours(0, 0, 0, 0);
-            filtered = filtered.filter(s => new Date(s.date) >= fromDate);
+            filtered = filtered.filter(s => {
+                const saleDate = new Date(s.date);
+                saleDate.setHours(0, 0, 0, 0);
+                return saleDate >= fromDate;
+            });
         }
         if (to) {
             const toDate = new Date(to);
             toDate.setHours(23, 59, 59, 999);
-            filtered = filtered.filter(s => new Date(s.date) <= toDate);
+            filtered = filtered.filter(s => {
+                const saleDate = new Date(s.date);
+                saleDate.setHours(23, 59, 59, 999);
+                return saleDate <= toDate;
+            });
         }
 
         document.getElementById('sales-results').innerHTML = Views._renderSalesList(filtered);
@@ -1297,12 +1305,20 @@ const Actions = {
         if (from) {
             const fromDate = new Date(from);
             fromDate.setHours(0, 0, 0, 0);
-            filtered = filtered.filter(e => new Date(e.date) >= fromDate);
+            filtered = filtered.filter(e => {
+                const expenseDate = new Date(e.date);
+                expenseDate.setHours(0, 0, 0, 0);
+                return expenseDate >= fromDate;
+            });
         }
         if (to) {
             const toDate = new Date(to);
             toDate.setHours(23, 59, 59, 999);
-            filtered = filtered.filter(e => new Date(e.date) <= toDate);
+            filtered = filtered.filter(e => {
+                const expenseDate = new Date(e.date);
+                expenseDate.setHours(23, 59, 59, 999);
+                return expenseDate <= toDate;
+            });
         }
         if (keyword) {
             filtered = filtered.filter(e =>
@@ -1344,12 +1360,20 @@ const Actions = {
             if (from) {
                 const fromDate = new Date(from);
                 fromDate.setHours(0, 0, 0, 0);
-                filtered = filtered.filter(s => new Date(s.date) >= fromDate);
+                filtered = filtered.filter(s => {
+                    const saleDate = new Date(s.date);
+                    saleDate.setHours(0, 0, 0, 0);
+                    return saleDate >= fromDate;
+                });
             }
             if (to) {
                 const toDate = new Date(to);
                 toDate.setHours(23, 59, 59, 999);
-                filtered = filtered.filter(s => new Date(s.date) <= toDate);
+                filtered = filtered.filter(s => {
+                    const saleDate = new Date(s.date);
+                    saleDate.setHours(23, 59, 59, 999);
+                    return saleDate <= toDate;
+                });
             }
 
             data = filtered;
@@ -1434,12 +1458,20 @@ const Actions = {
             if (from) {
                 const fromDate = new Date(from);
                 fromDate.setHours(0, 0, 0, 0);
-                filtered = filtered.filter(e => new Date(e.date) >= fromDate);
+                filtered = filtered.filter(e => {
+                    const expenseDate = new Date(e.date);
+                    expenseDate.setHours(0, 0, 0, 0);
+                    return expenseDate >= fromDate;
+                });
             }
             if (to) {
                 const toDate = new Date(to);
                 toDate.setHours(23, 59, 59, 999);
-                filtered = filtered.filter(e => new Date(e.date) <= toDate);
+                filtered = filtered.filter(e => {
+                    const expenseDate = new Date(e.date);
+                    expenseDate.setHours(23, 59, 59, 999);
+                    return expenseDate <= toDate;
+                });
             }
             if (keyword) filtered = filtered.filter(e =>
                 (e.description && e.description.toLowerCase().includes(keyword)) ||
