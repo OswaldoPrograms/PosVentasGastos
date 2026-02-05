@@ -1106,8 +1106,12 @@ textarea:focus {
  */
 .counter-btn {
     width: 36px;
+    min-width: 36px;
+    max-width: 36px;
     height: 36px;
-    border-radius: 50%;         /* Hace que sean circulares */
+    min-height: 36px;
+    max-height: 36px;
+    border-radius: 50%;
     border: none;
     font-weight: bold;
     font-size: 1.2rem;
@@ -1116,6 +1120,10 @@ textarea:focus {
     align-items: center;
     justify-content: center;
     transition: transform 0.1s;
+    padding: 0;
+    margin: 0;
+    box-sizing: border-box;
+    flex-shrink: 0;
 }
 
 /**
@@ -1223,4 +1231,140 @@ textarea:focus {
 
 @media (prefers-color-scheme: dark) {
     .scrollable-bg { scrollbar-color: rgba(255,255,255,0.12) transparent; }
+}
+
+/* ======================================================
+   NUEVOS COMPONENTES: Resumen de Ventas, Undo, Reset
+   ====================================================== */
+
+/* --- Resumen de ventas: grid de tarjetas de totales --- */
+.sales-summary-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1rem;
+}
+
+.summary-card {
+    background: var(--bg-card);
+    border-radius: var(--border-radius);
+    padding: 1.2rem 1rem;
+    box-shadow: var(--shadow);
+    text-align: center;
+}
+
+.summary-label {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    margin-bottom: 0.4rem;
+    font-weight: 600;
+}
+
+.summary-value {
+    font-size: 1.4rem;
+    font-weight: 800;
+    color: var(--primary);
+}
+
+@media (max-width: 768px) {
+    .sales-summary-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 480px) {
+    .sales-summary-grid {
+        grid-template-columns: 1fr 1fr;
+        gap: 0.6rem;
+    }
+    .summary-card {
+        padding: 0.8rem 0.6rem;
+    }
+    .summary-value {
+        font-size: 1.1rem;
+    }
+}
+
+/* --- Botón Deshacer (Undo) en POS --- */
+.pos-undo-btn {
+    background: rgba(255,255,255,0.2);
+    color: white;
+    border: 1px solid rgba(255,255,255,0.4);
+    padding: 0.5rem 0.8rem;
+    font-size: 0.9rem;
+    transition: opacity 0.2s, transform 0.1s;
+}
+
+.pos-undo-btn.disabled,
+.pos-undo-btn:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+    transform: none !important;
+}
+
+.pos-undo-btn:not(.disabled):hover {
+    background: rgba(255,255,255,0.3);
+    transform: translateY(-2px);
+}
+
+/* --- Botón Reset por producto en POS --- */
+.pos-reset-product-btn {
+    padding: 0.3rem 0.5rem !important;
+    font-size: 0.75rem !important;
+    background: transparent;
+    color: var(--text-muted);
+    border: 1px solid rgba(0,0,0,0.1);
+    border-radius: 8px;
+    min-width: auto;
+    box-shadow: none;
+}
+
+.pos-reset-product-btn:hover {
+    background: rgba(255, 118, 117, 0.1);
+    color: var(--danger);
+    border-color: var(--danger);
+}
+
+/* --- Botón Reset individual (0) en cada presentación --- */
+.pos-reset-btn {
+    width: 28px !important;
+    height: 28px !important;
+    font-size: 0.7rem !important;
+    border-radius: 6px !important;
+    background: transparent;
+    border: 1px solid rgba(0,0,0,0.1);
+    color: var(--text-muted);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s;
+}
+
+.pos-reset-btn:hover {
+    background: rgba(255, 118, 117, 0.15);
+    color: var(--danger);
+    border-color: var(--danger);
+}
+
+/* --- Modo oscuro para nuevos botones POS --- */
+@media (prefers-color-scheme: dark) {
+    .pos-reset-product-btn {
+        border-color: rgba(255,255,255,0.1);
+        color: var(--text-muted);
+    }
+    .pos-reset-product-btn:hover {
+        background: rgba(255, 118, 117, 0.15);
+        color: var(--danger);
+    }
+    .pos-reset-btn {
+        border-color: rgba(255,255,255,0.1);
+        color: var(--text-muted);
+    }
+    .pos-reset-btn:hover {
+        background: rgba(255, 118, 117, 0.15);
+        color: var(--danger);
+    }
+    .summary-card {
+        background: var(--bg-card);
+    }
 }

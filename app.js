@@ -4,73 +4,81 @@
  * Implementación con Vanilla JavaScript (sin frameworks)
  * 
  * CARACTERÍSTICAS PRINCIPALES:
- * - Gestión de inventario de productos
- * - Sistema de punto de venta con contador de ventas
- * - Registro de historial de ventas
+ * - Gestión de inventario de productos (con precios por presentación)
+ * - Sistema de punto de venta con render parcial (sin parpadeo)
+ * - Registro de historial de ventas con resúmenes (hoy/semana/mes + top productos)
  * - Gestión de gastos por categoría
- * - Filtrado y generación de reportes (PDF/Excel)
- * - Almacenamiento local (LocalStorage) con capacidad de importar/exportar
+ * - Filtrado y generación de reportes (PDF/Excel) con desglose por presentación
+ * - Almacenamiento local (LocalStorage) con validación al importar/exportar
  * - Offline-first PWA (Progressive Web App) con Service Worker
+ * - Sistema de Undo en POS
+ * - Protección de presentaciones base (500ml, 1L)
+ * - Timestamps (createdAt/updatedAt) en entidades
+ * - IDs estandarizados (string) en toda la app
+ * 
+ * VERSIÓN DE DATOS: 2
  */
 
 // --- GESTIÓN DEL ESTADO DE LA APLICACIÓN ---
-// AppState es el objeto central que mantiene todo el estado de la aplicación
-// Se sincroniza automáticamente con LocalStorage para persistencia de datos
 const AppState = {
-    view: 'inventory', // Vista actual que se está mostrando (inventory, pos, sales, etc.)
+    view: 'inventory',
     data: {
-        products: [], // Lista de todos los productos disponibles
-        salesHistory: [], // Registro histórico de todas las ventas realizadas
-        expenses: [], // Lista de gastos registrados
-        expenseCategories: [], // Categorías para clasificar gastos (Mercancia, Sueldos, Servicios, etc.)
-        // SISTEMA POS - Variables para el flujo de venta del día
-        posActiveProducts: [], // Productos seleccionados para vender hoy
-        // SISTEMA DE PRESENTACIONES - Para negocio de aguas
-        presentations: [], // Presentaciones predefinidas (500ml, 1L, 2L, etc.)
+        dataVersion: 2,
+        products: [],
+        salesHistory: [],
+        expenses: [],
+        expenseCategories: [],
+        posActiveProducts: [],
+        presentations: [],
+    }
+};
+
+// --- STACK DE UNDO PARA POS ---
+const UndoStack = {
+    _stack: [],
+    _maxSize: 50,
+
+    push() {
+        const snapshot = JSON.parse(JSON.stringify(AppState.data.posActiveProducts));
+        this._stack.push(snapshot);
+        if (this._stack.length > this._maxSize) this._stack.shift();
+    },
+
+    pop() {
+        if (this._stack.length === 0) return null;
+        return this._stack.pop();
+    },
+
+    canUndo() {
+        return this._stack.length > 0;
+    },
+
+    clear() {
+        this._stack = [];
     }
 };
 
 // --- FUNCIONES UTILITARIAS ---
-// Contiene funciones auxiliares para generar colores e imágenes placeholder
 const Utils = {
-    /**
-     * Genera un color consistente basado en el nombre del producto
-     * Usa hash del nombre para que el mismo producto siempre tenga el mismo color
-     * @param {string} name - Nombre del producto
-     * @returns {string} - Código de color en formato hexadecimal
-     */
     getColorForProduct(name) {
-        // Paleta de colores disponibles para los productos
         const colors = ['#FFFFFF','#6C5CE7','#5A3FD9','#A29BFE','#6C63FF','#0984E3','#74B9FF','#74C0FC','#00CEC9','#00A8A8','#55EFC4','#00B894','#00A36C','#FD79A8','#E84393','#FF6B6B','#FF7675','#D63031','#FF6348','#FDCB6E','#FFEAA7','#E17055','#E67E22','#FF9F1C','#B2BEC3','#636E72','#2D3436','#1E272E'];
-        
-        // Calcula un hash del nombre para asignar color de forma consistente
         let hash = 0;
         for (let i = 0; i < name.length; i++) {
             hash = name.charCodeAt(i) + ((hash << 5) - hash);
         }
-        
-        // Retorna el color correspondiente al hash calculado
         return colors[Math.abs(hash) % colors.length];
     },
-    /**
-     * Devuelve un color de contraste (negro o blanco) apropiado para texto sobre un fondo
-     * @param {string} hex - color de fondo en hexadecimal
-     */
+
     getContrastColor(hex) {
         if (!hex) return '#ffffff';
         const c = hex.replace('#', '');
         const r = parseInt(c.substring(0,2),16);
         const g = parseInt(c.substring(2,4),16);
         const b = parseInt(c.substring(4,6),16);
-        // Perceived brightness
         const brightness = (r * 299 + g * 587 + b * 114) / 1000;
         return brightness > 180 ? '#000000' : '#ffffff';
     },
-    /**
-     * Convierte un color hexadecimal a rgba con una opacidad dada
-     * @param {string} hex - color en formato #rrggbb
-     * @param {number} alpha - valor entre 0 y 1
-     */
+
     hexToRgba(hex, alpha = 1) {
         if (!hex) return `rgba(0,0,0,${alpha})`;
         const c = hex.replace('#','');
@@ -80,7 +88,6 @@ const Utils = {
         return `rgba(${r}, ${g}, ${b}, ${alpha})`;
     },
 
-    /** Escapa texto para evitar inyección de HTML en descripciones */
     escapeHtml(str) {
         if (!str) return '';
         return String(str).replace(/[&<>"]+/g, function (s) {
@@ -94,221 +101,263 @@ const Utils = {
         });
     },
     
-    /**
-     * Genera una imagen SVG placeholder cuando no hay imagen disponible
-     * Muestra la primera letra del producto en un fondo de color
-     * @param {string} name - Nombre del producto
-     * @returns {string} - Data URL de imagen SVG
-     */
     getPlaceholderImage(name) {
-        // Obtiene la primera letra del nombre en mayúscula
         const initial = name.charAt(0).toUpperCase();
-        
-        // Obtiene el color asignado al producto
         const color = this.getColorForProduct(name);
-        
-        // Crea un SVG con el color y la inicial del producto
         return `data:image/svg+xml,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="150" height="150"><rect width="150" height="150" fill="${color}"/><text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" font-family="Arial" font-size="60" fill="white" font-weight="bold">${initial}</text></svg>`)}`;
+    },
+
+    /** Genera un ID único string */
+    generateId() {
+        return Date.now().toString(36) + '_' + Math.random().toString(36).substring(2, 8);
+    },
+
+    /** Debounce: retrasa la ejecución hasta que deje de ser invocada */
+    debounce(fn, delay = 200) {
+        let timer;
+        return function(...args) {
+            clearTimeout(timer);
+            timer = setTimeout(() => fn.apply(this, args), delay);
+        };
     }
 };
 
 // --- SERVICIO DE ALMACENAMIENTO (STORAGE) ---
-// Gestiona la persistencia de datos en LocalStorage del navegador
-// Soporta carga, guardado, exportación e importación de datos
 const Storage = {
-    // Clave única en LocalStorage para almacenar los datos de la aplicación
     KEY: 'triciclo_pos_data',
     
-    /**
-     * Guarda el estado actual de la aplicación en LocalStorage
-     * Convierte AppState.data a JSON string
-     */
     save() {
         localStorage.setItem(this.KEY, JSON.stringify(AppState.data));
     },
     
-    /**
-     * Carga los datos guardados desde LocalStorage
-     * Si hay datos previos, los restaura; si no, inicializa datos de prueba
-     */
     load() {
-        // Intenta recuperar datos del LocalStorage
         const stored = localStorage.getItem(this.KEY);
         
         if (stored) {
-            // Si existen datos guardados, los restaura en AppState
-            AppState.data = { ...AppState.data, ...JSON.parse(stored) };
+            const parsed = JSON.parse(stored);
+            AppState.data = { ...AppState.data, ...parsed };
         } else {
-            // Primera vez: inicializa categorías de gastos por defecto
             AppState.data.expenseCategories = [
-                { id: 1, name: 'Mercancia' },    // Para compras de productos
-                { id: 2, name: 'Sueldos' },      // Para pagos de empleados
-                { id: 3, name: 'Servicios' }     // Para servicios (luz, agua, etc.)
+                { id: Utils.generateId(), name: 'Mercancia', createdAt: new Date().toISOString() },
+                { id: Utils.generateId(), name: 'Sueldos', createdAt: new Date().toISOString() },
+                { id: Utils.generateId(), name: 'Servicios', createdAt: new Date().toISOString() }
             ];
-            
-            // Presentaciones predefinidas para negocio de aguas (mínimo 500ml y 1L)
             AppState.data.presentations = [
-                { id: 1, name: '500ml', liters: 0.5 },
-                { id: 2, name: '1L', liters: 1 }
+                { id: 1, name: '500ml', liters: 0.5, createdAt: new Date().toISOString(), isProtected: true },
+                { id: 2, name: '1L', liters: 1, createdAt: new Date().toISOString(), isProtected: true }
             ];
-            // Guarda estos datos iniciales
-            this.save(); ma
+            this.save();
         }
-        // Asegura que siempre existan 500ml y 1L aunque el usuario haya importado datos sin ellas
+
+        // Asegurar presentaciones base
         if (!AppState.data.presentations) AppState.data.presentations = [];
         const ensure = (name, liters) => {
             if (!AppState.data.presentations.find(p => p.name === name || p.liters === liters)) {
-                const newId = AppState.data.presentations.length ? Math.max(...AppState.data.presentations.map(p => p.id)) + 1 : 1;
-                AppState.data.presentations.push({ id: newId, name, liters });
+                const newId = AppState.data.presentations.length ? Math.max(...AppState.data.presentations.map(p => typeof p.id === 'number' ? p.id : 0)) + 1 : 1;
+                AppState.data.presentations.push({ id: newId, name, liters, createdAt: new Date().toISOString(), isProtected: true });
             }
         };
         ensure('500ml', 0.5);
         ensure('1L', 1);
+
+        // Marcar presentaciones base como protegidas
+        AppState.data.presentations.forEach(p => {
+            if ((p.name === '500ml' && p.liters === 0.5) || (p.name === '1L' && p.liters === 1)) {
+                p.isProtected = true;
+            }
+        });
+
+        if (!AppState.data.dataVersion) AppState.data.dataVersion = 2;
         this.save();
     },
     
-    /**
-     * Exporta todos los datos de la aplicación a un archivo JSON
-     * Útil para hacer respaldos o transferir datos entre dispositivos
-     */
     exportData() {
-        // Convierte los datos a JSON formateado (con indentación para legibilidad)
         const dataStr = JSON.stringify(AppState.data, null, 2);
-        
-        // Crea un objeto Blob con los datos JSON
         const blob = new Blob([dataStr], { type: 'application/json' });
-        
-        // Crea una URL temporal para el archivo
         const url = URL.createObjectURL(blob);
-        
-        // Crea un elemento <a> temporal para descargar el archivo
         const link = document.createElement('a');
         link.href = url;
-        link.download = `triciclo_backup_${new Date().toISOString().split('T')[0]}.json`; // Nombre incluye la fecha
+        link.download = `triciclo_backup_${new Date().toISOString().split('T')[0]}.json`;
         link.click();
-        
-        // Libera la URL temporal después de descargar
         URL.revokeObjectURL(url);
     },
     
     /**
-     * Importa datos desde un archivo JSON previamente exportado
-     * Restaura todos los productos, ventas, gastos, etc.
-     * @param {File} file - Archivo JSON a importar
+     * Valida la estructura de datos importados.
+     * Asegura que todos los campos requeridos existan y sean del tipo correcto.
      */
+    validateImportData(data) {
+        const errors = [];
+
+        if (typeof data !== 'object' || data === null) {
+            return { valid: false, errors: ['El archivo no contiene un objeto JSON válido.'], sanitized: null };
+        }
+
+        const sanitized = {
+            dataVersion: data.dataVersion || 2,
+            products: [],
+            salesHistory: [],
+            expenses: [],
+            expenseCategories: [],
+            posActiveProducts: [],
+            presentations: [],
+        };
+
+        // Validar products
+        if (Array.isArray(data.products)) {
+            sanitized.products = data.products.filter(p => {
+                if (!p || typeof p !== 'object') return false;
+                if (!p.id || !p.name) { errors.push('Producto sin id o nombre omitido.'); return false; }
+                return true;
+            }).map(p => ({
+                ...p,
+                id: String(p.id),
+                name: String(p.name || ''),
+                pricePerLiter: parseFloat(p.pricePerLiter) || parseFloat(p.price) || 0,
+                color: p.color || null,
+                presentations: Array.isArray(p.presentations) ? p.presentations : [],
+                createdAt: p.createdAt || new Date().toISOString(),
+                updatedAt: p.updatedAt || new Date().toISOString(),
+            }));
+        } else if (data.products !== undefined) {
+            errors.push('"products" no es un array, se usará array vacío.');
+        }
+
+        // Validar salesHistory
+        if (Array.isArray(data.salesHistory)) {
+            sanitized.salesHistory = data.salesHistory.filter(s => {
+                if (!s || typeof s !== 'object') return false;
+                if (!s.date) { errors.push('Venta sin fecha omitida.'); return false; }
+                return true;
+            }).map(s => ({
+                ...s,
+                id: String(s.id || Utils.generateId()),
+                totalAmount: parseFloat(s.totalAmount) || 0,
+                items: Array.isArray(s.items) ? s.items : [],
+            }));
+        } else if (data.salesHistory !== undefined) {
+            errors.push('"salesHistory" no es un array, se usará array vacío.');
+        }
+
+        // Validar expenses
+        if (Array.isArray(data.expenses)) {
+            sanitized.expenses = data.expenses.filter(e => e && typeof e === 'object').map(e => ({
+                ...e,
+                id: String(e.id || Utils.generateId()),
+                amount: parseFloat(e.amount) || 0,
+                date: e.date || new Date().toISOString(),
+            }));
+        } else if (data.expenses !== undefined) {
+            errors.push('"expenses" no es un array, se usará array vacío.');
+        }
+
+        // Validar expenseCategories
+        if (Array.isArray(data.expenseCategories)) {
+            sanitized.expenseCategories = data.expenseCategories.filter(c => c && c.name).map(c => ({
+                ...c,
+                id: c.id != null ? String(c.id) : Utils.generateId(),
+                name: String(c.name),
+            }));
+        } else if (data.expenseCategories !== undefined) {
+            errors.push('"expenseCategories" no es un array, se usará array vacío.');
+        }
+
+        // Validar presentations
+        if (Array.isArray(data.presentations)) {
+            sanitized.presentations = data.presentations.filter(p => p && p.name && p.liters != null).map(p => ({
+                ...p,
+                liters: parseFloat(p.liters) || 0,
+            }));
+        } else if (data.presentations !== undefined) {
+            errors.push('"presentations" no es un array, se usará array vacío.');
+        }
+
+        sanitized.posActiveProducts = [];
+
+        return { valid: true, errors, sanitized };
+    },
+
     importData(file) {
-        // Crea un lector de archivos
         const reader = new FileReader();
         
-        // Se ejecuta cuando el archivo se haya leído completamente
         reader.onload = (e) => {
             try {
-                // Intenta parsear el contenido del archivo como JSON
                 const imported = JSON.parse(e.target.result);
-                
-                // Reemplaza el estado actual con los datos importados
-                AppState.data = imported;
-                
-                // Guarda los datos en LocalStorage
+                const { valid, errors, sanitized } = this.validateImportData(imported);
+
+                if (!valid) {
+                    alert('❌ ' + errors.join('\n'));
+                    return;
+                }
+
+                if (errors.length > 0) {
+                    console.warn('Advertencias al importar:', errors);
+                }
+
+                AppState.data = sanitized;
                 this.save();
-                
-                // Notifica al usuario que la importación fue exitosa
-                alert('✅ Datos importados correctamente');
-                
-                // Actualiza la vista actual para mostrar los datos importados
+                this.load(); // Asegurar presentaciones base
+
+                const warningMsg = errors.length > 0 ? `\n⚠️ ${errors.length} advertencia(s) corregidas automáticamente.` : '';
+                alert('✅ Datos importados correctamente.' + warningMsg);
                 Router.navigate(AppState.view);
             } catch (error) {
-                // Si hay error al parsear, notifica al usuario
-                alert('❌ Error al importar el archivo. Verifica que sea un archivo válido.');
+                alert('❌ Error al importar el archivo. Verifica que sea un archivo JSON válido.');
             }
         };
         
-        // Comienza a leer el archivo como texto
         reader.readAsText(file);
     }
 };
 
 // --- ROUTER Y RENDERIZADO DE VISTAS ---
-// Gestiona la navegación entre diferentes páginas/vistas de la aplicación
-// Controla qué vista se muestra basándose en la selección del usuario
 const Router = {
-    /**
-     * Inicializa la aplicación
-     * - Configura listeners de navegación
-     * - Carga datos del almacenamiento
-     * - Renderiza la vista inicial
-     */
     init() {
-        // Agrega listeners a cada botón de navegación en el sidebar
         document.querySelectorAll('.nav-links li').forEach(el => {
-            el.addEventListener('click', (e) => {
-                // Obtiene el nombre de la vista del atributo data-view
+            el.addEventListener('click', () => {
                 const view = el.dataset.view;
-                // Navega a la vista seleccionada
                 this.navigate(view);
             });
         });
 
-        // Carga los datos guardados previamente desde LocalStorage
         Storage.load();
-
-        // Renderiza la vista inicial (Inventario)
         this.navigate('inventory');
     },
 
-    /**
-     * Navega a una vista específica
-     * - Actualiza el estado de la aplicación
-     * - Destaca el botón de navegación activo
-     * - Renderiza el contenido de la vista seleccionada
-     * @param {string} viewName - Nombre de la vista (inventory, pos, sales, etc.)
-     */
     navigate(viewName) {
-        // Actualiza el estado de la vista actual
         AppState.view = viewName;
 
-        // Actualiza el estilo de los botones de navegación
-        // Destaca el botón activo y remueve el highlight de los demás
         document.querySelectorAll('.nav-links li').forEach(el => {
             if (el.dataset.view === viewName) el.classList.add('active');
             else el.classList.remove('active');
         });
 
-        // Obtiene el elemento donde se mostrará el contenido
         const main = document.getElementById('main-content');
-        main.innerHTML = ''; // Limpia el contenido anterior
+        main.innerHTML = '';
 
-        // Renderiza la vista correspondiente basada en el nombre
         switch (viewName) {
             case 'inventory':
-                // Vista de Inventario: muestra todos los productos
                 main.appendChild(Views.inventory());
                 break;
             case 'pos':
-                // Vista de Punto de Venta: permite vender productos del día
                 main.appendChild(Views.pos());
                 break;
             case 'sales':
-                // Vista de Ventas: muestra historial de ventas con filtros y reportes
                 main.appendChild(Views.sales());
                 break;
             case 'add-expense':
-                // Vista para agregar nuevos gastos
                 main.appendChild(Views.addExpense());
                 break;
             case 'view-expenses':
-                // Vista para ver y filtrar gastos registrados
                 main.appendChild(Views.viewExpenses());
                 break;
-            case 'expenses': // Para compatibilidad con versiones anteriores
+            case 'expenses':
                 this.navigate('add-expense');
                 return;
             case 'settings':
-                // Vista de Configuración: exportar/importar datos
                 main.appendChild(Views.settings());
                 break;
             default:
-                // Si la vista no existe, muestra error 404
                 main.innerHTML = '<h2>404 Not Found</h2>';
         }
     }
@@ -334,13 +383,11 @@ const Views = {
     },
 
     _renderProductCard(product) {
-        // Usa el color del producto o genera uno basado en el nombre
         const color = product.color || Utils.getColorForProduct(product.name);
         const contrast = Utils.getContrastColor(color);
         const presentations = product.presentations || [];
         const pricePerLiter = product.pricePerLiter || product.price || 0;
-        // Nuevo diseño: bloque superior coloreado que se mezcla con la tarjeta
-        // y contiene el nombre del agua y el precio.
+
         return `
             <div class="card product-card">
                 <div class="product-hero" style="background-color: ${color}; color: ${contrast};">
@@ -355,8 +402,8 @@ const Views = {
 
                     <div style="display: flex; gap: 0.3rem; flex-wrap: wrap; margin: 0.8rem 0; justify-content: center;">
                         ${presentations.map(p => {
-                            // Usar el color del producto para el borde y el color del tema para el texto
-                            return `<span class="presentation-pill" style="border: 2px solid ${color}; color: var(--text-main);">${p.name}</span>`;
+                            const presPrice = (p.price != null) ? `$${parseFloat(p.price).toFixed(2)}` : `$${(pricePerLiter * p.liters).toFixed(2)}`;
+                            return `<span class="presentation-pill" style="border: 2px solid ${color}; color: var(--text-main);" title="Precio: ${presPrice}">${p.name} <small style="opacity:0.7;">${presPrice}</small></span>`;
                         }).join('')}
                     </div>
 
@@ -373,7 +420,6 @@ const Views = {
         const hasActiveSession = AppState.data.posActiveProducts && AppState.data.posActiveProducts.length > 0;
 
         if (!hasActiveSession) {
-            // VIEW: SETUP DAY
             const container = document.createElement('div');
             container.innerHTML = `
                 <div class="page-header">
@@ -382,12 +428,11 @@ const Views = {
                 </div>
                 <div class="card" style="margin-bottom: 1rem;">
                     <p style="color: var(--text-muted); margin-bottom: 1rem;">Selecciona los productos disponibles para vender hoy:</p>
-                    <input type="text" id="pos-search" placeholder="🔍 Buscar producto..." style="width: 100%;" onkeyup="Actions.filterPosProducts()" onkeydown="if(event.key==='Enter'){ this.blur(); }">
+                    <input type="text" id="pos-search" placeholder="🔍 Buscar producto..." style="width: 100%;" onkeyup="Actions._debouncedFilterPos()" onkeydown="if(event.key==='Enter'){ this.blur(); }">
                 </div>
                 <div class="pos-setup-list" id="pos-setup-list">
                         ${AppState.data.products.map(p => {
                         const color = p.color || Utils.getColorForProduct(p.name);
-                        const presentations = p.presentations || [];
                         const pricePerLiter = p.pricePerLiter || 0;
                         
                         return `
@@ -408,21 +453,21 @@ const Views = {
             `;
             return container;
         } else {
-            // VIEW: ACTIVE POS - Mostrar presentaciones de cada producto
-            // Calcula el total sumando cada presentación vendida (precio * cantidad)
-            const total = AppState.data.posActiveProducts.reduce((sum, prod) => {
-                const presTotal = (prod.presentationItems || []).reduce((s, pi) => s + ((pi.price || 0) * (pi.count || 0)), 0);
-                return sum + presTotal;
-            }, 0);
+            // VIEW: ACTIVE POS - Con render parcial (sin Router.navigate en cada click)
+            const total = this._calculatePosTotal();
 
             const container = document.createElement('div');
+            container.id = 'pos-active-view';
             container.innerHTML = `
-                <div class="pos-total-banner">
+                <div class="pos-total-banner" id="pos-total-banner">
                     <div>
                         <small>Total del Día</small>
-                        <h2>$${total.toFixed(2)}</h2>
+                        <h2 id="pos-total-amount">$${total.toFixed(2)}</h2>
                     </div>
-                    <button class="btn" style="background: rgba(255,255,255,0.2); color: white; border: 1px solid white;" onclick="Actions.closePosDay()">🌙 Cerrar Día</button>
+                    <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
+                        <button class="btn pos-undo-btn ${UndoStack.canUndo() ? '' : 'disabled'}" id="pos-undo-btn" onclick="Actions.undoPosAction()" title="Deshacer última acción" ${UndoStack.canUndo() ? '' : 'disabled'}>↩️</button>
+                        <button class="btn" style="background: rgba(255,255,255,0.2); color: white; border: 1px solid white;" onclick="Actions.closePosDay()">🌙 Cerrar Día</button>
+                    </div>
                 </div>
                 
                 <div class="grid">
@@ -432,11 +477,10 @@ const Views = {
                         const pricePerLiter = product.pricePerLiter || 0;
                         
                         return `
-                        <div class="card pos-product-card" style="padding: 0.9rem; border: 6px solid ${Utils.hexToRgba(color, 0.32)};">
+                        <div class="card pos-product-card" style="padding: 0.9rem; border: 6px solid ${Utils.hexToRgba(color, 0.32)};" data-product-id="${product.id}">
                             <h4 style="margin-bottom: 0.5rem;">${product.name}</h4>
-                            <div style="margin-bottom: 1rem;">
+                            <div>
                                 ${presentations.map(p => {
-                                    // Usa precio personalizado por presentación si existe, sino calcula desde pricePerLiter
                                     const presPrice = (p.price != null) ? p.price : (pricePerLiter * p.liters);
                                     const price = presPrice.toFixed(2);
                                     const item = AppState.data.posActiveProducts.find(pos => pos.id === product.id);
@@ -444,14 +488,14 @@ const Views = {
                                     const count = presItem?.count || 0;
                                     
                                     return `
-                                        <div class="pos-pres-item" style="padding: 0.8rem; border-radius: 8px; margin-bottom: 0.5rem;">
+                                        <div class="pos-pres-item" style="padding: 0.8rem; border-radius: 8px; margin-bottom: 0.5rem;" data-pres-id="${p.id}">
                                             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
                                                 <span style="font-weight: 600;">${p.name}</span>
                                                 <span style="color: var(--primary); font-weight: bold;">$${price}</span>
                                             </div>
-                                            <div style="display: flex; gap: 0.5rem; justify-content: center;">
+                                            <div style="display: flex; gap: 0.5rem; justify-content: center; align-items: center;">
                                                 <button class="counter-btn btn-minus" onclick="Actions.updatePosItemCount('${product.id}', ${p.id}, -1)">-</button>
-                                                <div class="count-display">${count}</div>
+                                                <div class="count-display" id="count-${product.id}-${p.id}">${count}</div>
                                                 <button class="counter-btn btn-plus" onclick="Actions.updatePosItemCount('${product.id}', ${p.id}, 1)">+</button>
                                             </div>
                                         </div>
@@ -467,6 +511,56 @@ const Views = {
         }
     },
 
+    /** Calcula el total del POS sin re-renderizar */
+    _calculatePosTotal() {
+        return AppState.data.posActiveProducts.reduce((sum, prod) => {
+            const presTotal = (prod.presentationItems || []).reduce((s, pi) => s + ((pi.price || 0) * (pi.count || 0)), 0);
+            return sum + presTotal;
+        }, 0);
+    },
+
+    /** Actualiza solo los elementos DOM afectados en POS (render parcial) */
+    _updatePosUI(productId, presentationId) {
+        const countEl = document.getElementById(`count-${productId}-${presentationId}`);
+        if (countEl) {
+            const product = AppState.data.posActiveProducts.find(p => p.id === productId);
+            const presItem = product?.presentationItems?.find(pi => pi.presentationId === presentationId);
+            countEl.textContent = presItem?.count || 0;
+        }
+
+        const totalEl = document.getElementById('pos-total-amount');
+        if (totalEl) {
+            totalEl.textContent = `$${this._calculatePosTotal().toFixed(2)}`;
+        }
+
+        const undoBtn = document.getElementById('pos-undo-btn');
+        if (undoBtn) {
+            undoBtn.disabled = !UndoStack.canUndo();
+            undoBtn.classList.toggle('disabled', !UndoStack.canUndo());
+        }
+    },
+
+    /** Actualiza todos los contadores del POS (usado tras undo o reset) */
+    _updateAllPosUI() {
+        AppState.data.posActiveProducts.forEach(product => {
+            (product.presentationItems || []).forEach(pi => {
+                const countEl = document.getElementById(`count-${product.id}-${pi.presentationId}`);
+                if (countEl) countEl.textContent = pi.count || 0;
+            });
+        });
+
+        const totalEl = document.getElementById('pos-total-amount');
+        if (totalEl) {
+            totalEl.textContent = `$${this._calculatePosTotal().toFixed(2)}`;
+        }
+
+        const undoBtn = document.getElementById('pos-undo-btn');
+        if (undoBtn) {
+            undoBtn.disabled = !UndoStack.canUndo();
+            undoBtn.classList.toggle('disabled', !UndoStack.canUndo());
+        }
+    },
+
     sales() {
         const container = document.createElement('div');
         container.innerHTML = `
@@ -474,7 +568,6 @@ const Views = {
                 <h2>📊 Historial de Ventas</h2>
             </div>
             
-            <!-- Filters & Actions -->
             <div class="card" style="margin-bottom: 1.5rem;">
                 <h3>Filtros y Exportación</h3>
                 <div class="grid" style="grid-template-columns: 1fr 1fr; gap: 1rem;">
@@ -494,11 +587,81 @@ const Views = {
                 </div>
             </div>
 
+            <!-- Resumen con totales por periodo y top productos -->
+            <div id="sales-summary" style="margin-bottom: 1.5rem;">
+                ${this._renderSalesSummary(AppState.data.salesHistory || [])}
+            </div>
+
             <div id="sales-results" style="display: flex; flex-direction: column; gap: 1rem;">
                 ${this._renderSalesList(AppState.data.salesHistory || [])}
             </div>
         `;
         return container;
+    },
+
+    /** Resumen de ventas: totales hoy/semana/mes + top 5 productos */
+    _renderSalesSummary(sales) {
+        if (!sales || sales.length === 0) return '';
+
+        const now = new Date();
+        const today = now.toISOString().split('T')[0];
+        const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+        const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
+
+        const totalToday = sales.filter(s => s.date.split('T')[0] === today).reduce((sum, s) => sum + s.totalAmount, 0);
+        const totalWeek = sales.filter(s => s.date.split('T')[0] >= weekAgo).reduce((sum, s) => sum + s.totalAmount, 0);
+        const totalMonth = sales.filter(s => s.date.split('T')[0] >= monthStart).reduce((sum, s) => sum + s.totalAmount, 0);
+        const totalAll = sales.reduce((sum, s) => sum + s.totalAmount, 0);
+
+        // Top 5 productos (por presentación)
+        const productCounts = {};
+        sales.forEach(s => {
+            (s.items || []).forEach(item => {
+                const key = `${item.name}${item.presentationName ? ' ' + item.presentationName : ''}`;
+                if (!productCounts[key]) productCounts[key] = { name: key, count: 0, total: 0 };
+                productCounts[key].count += item.count;
+                productCounts[key].total += item.total;
+            });
+        });
+        const topProducts = Object.values(productCounts).sort((a, b) => b.total - a.total).slice(0, 5);
+
+        return `
+            <div class="sales-summary-grid">
+                <div class="summary-card">
+                    <div class="summary-label">📅 Hoy</div>
+                    <div class="summary-value">$${totalToday.toFixed(2)}</div>
+                </div>
+                <div class="summary-card">
+                    <div class="summary-label">📆 Semana</div>
+                    <div class="summary-value">$${totalWeek.toFixed(2)}</div>
+                </div>
+                <div class="summary-card">
+                    <div class="summary-label">🗓️ Mes</div>
+                    <div class="summary-value">$${totalMonth.toFixed(2)}</div>
+                </div>
+                <div class="summary-card">
+                    <div class="summary-label">💰 Total</div>
+                    <div class="summary-value">$${totalAll.toFixed(2)}</div>
+                </div>
+            </div>
+            ${topProducts.length > 0 ? `
+            <div class="card" style="margin-top: 1rem;">
+                <h3 style="margin-bottom: 0.8rem;">🏆 Top Productos</h3>
+                <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+                    ${topProducts.map((p, i) => `
+                        <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.4rem 0; ${i < topProducts.length - 1 ? 'border-bottom: 1px solid #f0f0f0;' : ''}">
+                            <div>
+                                <span style="font-weight: 600; color: var(--primary);">#${i + 1}</span>
+                                <span style="margin-left: 0.5rem;">${p.name}</span>
+                                <span style="color: var(--text-muted); font-size: 0.85rem; margin-left: 0.3rem;">(${p.count} uds)</span>
+                            </div>
+                            <strong style="color: var(--success);">$${p.total.toFixed(2)}</strong>
+                        </div>
+                    `).join('')}
+                </div>
+            </div>
+            ` : ''}
+        `;
     },
 
     _renderSalesList(sales) {
@@ -516,8 +679,7 @@ const Views = {
                     ${sale.items.map(i => {
                         const product = AppState.data.products.find(p => p.id === (i.productId || i.name));
                         const status = product ? '' : ' <span style="background: var(--danger); color: white; padding: 0.2rem 0.5rem; border-radius: 4px; font-size: 0.7rem;">DESCONTINUADO</span>';
-                        // Show presentation info if available
-                            const presentationInfo = i.presentationName ? ` ${i.presentationName}` : '';
+                        const presentationInfo = i.presentationName ? ` ${i.presentationName}` : '';
                         return `
                             <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.4rem 0; border-bottom: 1px solid #f0f0f0;">
                                 <div>
@@ -538,7 +700,6 @@ const Views = {
     },
 
     expenses() {
-        // Legacy - redirect to add-expense
         return this.addExpense();
     },
 
@@ -576,10 +737,8 @@ const Views = {
                 </form>
             </div>
             
-            <!-- Espacio adicional para permitir scroll en móviles -->
             <div style="height: 15vh; min-height: 80px;"></div>
         `;
-        // Hacer que el fondo (contenedor de la vista) sea el que haga scroll, no la tarjeta
         container.classList.add('scrollable-view');
         return container;
     },
@@ -594,7 +753,6 @@ const Views = {
                 <h2>💸 Ver Gastos</h2>
             </div>
 
-            <!-- Filters -->
             <div class="card" style="margin-bottom: 1.5rem;">
                 <h3>Filtros</h3>
                 <div class="grid" style="grid-template-columns: 1fr 1fr 1fr; gap: 1rem;">
@@ -620,7 +778,6 @@ const Views = {
                 </div>
             </div>
 
-            <!-- Results -->
             <div id="expense-results" class="scrollable-small">
                 ${this._renderExpenseList(allExpenses, categories)}
             </div>
@@ -633,7 +790,7 @@ const Views = {
 
         return `<div style="display: flex; flex-direction: column; gap: 1rem;">
             ${expenses.slice().reverse().map(exp => {
-            const category = categories.find(c => c.id == exp.categoryId)?.name || 'General';
+            const category = categories.find(c => String(c.id) === String(exp.categoryId))?.name || 'General';
             return `
                 <div class="card" style="display: flex; justify-content: space-between; align-items: center; padding: 1rem;">
                     <div>
@@ -675,13 +832,10 @@ const Views = {
                 <input type="file" id="import-file" accept=".json" style="display: none;" onchange="Storage.importData(this.files[0])">
                 <button class="btn" style="background-color: var(--secondary);" onclick="document.getElementById('import-file').click()">📤 Importar Datos</button>
             </div>
-            
-            
         `;
         return container;
     },
 
-    // Generic Modal
     renderModal(title, contentHtml) {
         const existing = document.querySelector('.modal-overlay');
         if (existing) this.closeModal(existing);
@@ -699,43 +853,38 @@ const Views = {
                 </div>
             </div>
         `;
-        // Close on outside click
         modal.addEventListener('click', (e) => {
             if (e.target === modal) this.closeModal();
         });
         document.body.appendChild(modal);
     },
 
-    /**
-     * Cierra el modal con animación de salida
-     */
     closeModal(modalElement) {
         const modal = modalElement || document.querySelector('.modal-overlay');
         if (!modal) return;
         
-        // Añadir clases de animación de cierre
         modal.classList.add('modal-closing');
         const content = modal.querySelector('.modal-content');
         if (content) content.classList.add('modal-content-closing');
         
-        // Esperar a que termine la animación antes de eliminar
-        setTimeout(() => {
-            modal.remove();
-        }, 200); // Duración de la animación
+        setTimeout(() => { modal.remove(); }, 200);
     }
 };
 
 // --- ACTIONS (Controller Helpers) ---
 const Actions = {
+    // Debounced filter para búsqueda POS (150ms)
+    _debouncedFilterPos: Utils.debounce(() => {
+        Actions.filterPosProducts();
+    }, 150),
+
     openProductModal(productId = null) {
         const product = productId ? AppState.data.products.find(p => p.id === productId) : null;
         const title = product ? 'Editar Agua' : 'Nuevo Agua';
         
-        // Paleta de colores disponibles (más extensa)
         const colors = ['#FFFFFF','#6C5CE7','#5A3FD9','#A29BFE','#6C63FF','#0984E3','#74B9FF','#74C0FC','#00CEC9','#00A8A8','#55EFC4','#00B894','#00A36C','#FD79A8','#E84393','#FF6B6B','#FF7675','#D63031','#FF6348','#FDCB6E','#FFEAA7','#E17055','#E67E22','#FF9F1C','#B2BEC3','#636E72','#2D3436','#1E272E'];
         const selectedColor = product?.color || colors[0];
         
-        // Obtener presentaciones predefinidas
         const presentations = AppState.data.presentations || [];
         const productPresentations = product?.presentations || [];
 
@@ -805,10 +954,6 @@ const Actions = {
         Views.renderModal(title, formHtml);
     },
 
-    /**
-     * Actualiza la selección de presentaciones en el formulario
-     * Recoge los checkboxes seleccionados y los guarda en el campo oculto
-     */
     updatePresentationSelection() {
         const presentations = AppState.data.presentations || [];
         const checked = document.querySelectorAll('input[name="presentation"]:checked');
@@ -823,34 +968,24 @@ const Actions = {
         document.getElementById('presentations-data').value = JSON.stringify(selected);
     },
 
-    /**
-     * Selecciona un color para el producto
-     * Actualiza el campo oculto y destaca el botón seleccionado
-     */
     selectProductColor(color, element) {
-        // Remueve la clase 'selected' de todos los botones y añade la clase al clickeado
         document.querySelectorAll('.color-picker-btn').forEach(btn => btn.classList.remove('selected'));
         element.classList.add('selected');
-        // Actualiza el valor del campo oculto
         const hidden = document.getElementById('product-color');
         if (hidden) hidden.value = color;
 
-        // Actualiza el preview del combobox si existe
         const preview = document.querySelector('.color-combobox .color-preview');
         if (preview) preview.style.backgroundColor = color;
         const comboText = document.querySelector('.color-combobox .color-combobox-text');
         if (comboText) comboText.textContent = color;
-        // Ajusta contraste del texto del combobox
         const contrast = Utils.getContrastColor(color);
         if (comboText) comboText.style.color = contrast;
         
-        // Cierra el dropdown si está abierto
         const panel = document.querySelector('.color-dropdown-panel');
         if (panel) panel.style.display = 'none';
     },
 
     toggleColorDropdown(btn) {
-        // btn is the toggle button inside .color-combobox
         if (!btn) return;
         const combobox = btn.closest('.color-combobox');
         if (!combobox) return;
@@ -867,7 +1002,6 @@ const Actions = {
         const color = formData.get('color');
         const presentations = JSON.parse(formData.get('presentations') || '[]');
 
-        // Validaciones: nombre no vacío y único (case-insensitive)
         if (!name) {
             alert('El nombre del producto no puede estar vacío.');
             return;
@@ -885,8 +1019,9 @@ const Actions = {
             return;
         }
 
+        const now = new Date().toISOString();
+
         if (id) {
-            // Edit
             const index = AppState.data.products.findIndex(p => p.id === id);
             if (index !== -1) {
                 AppState.data.products[index] = { 
@@ -894,25 +1029,27 @@ const Actions = {
                     name, 
                     pricePerLiter, 
                     color,
-                    presentations 
+                    presentations,
+                    updatedAt: now,
                 };
             }
         } else {
-            // Create
             const newProduct = {
-                id: Date.now().toString(),
+                id: Utils.generateId(),
                 name,
                 pricePerLiter,
                 color,
                 presentations,
-                category: 'default'
+                category: 'default',
+                createdAt: now,
+                updatedAt: now,
             };
             AppState.data.products.push(newProduct);
         }
 
         Storage.save();
         Views.closeModal();
-        Router.navigate('inventory'); // Re-render
+        Router.navigate('inventory');
     },
 
     deleteProduct(id) {
@@ -931,6 +1068,8 @@ const Actions = {
             return;
         }
 
+        UndoStack.clear();
+
         const selectedIds = Array.from(inputs).map(i => i.value);
         AppState.data.posActiveProducts = AppState.data.products
             .filter(p => selectedIds.includes(p.id))
@@ -948,7 +1087,8 @@ const Actions = {
     },
 
     /**
-     * Actualiza la cantidad de un producto en una presentación específica
+     * Actualiza la cantidad de un producto en una presentación específica.
+     * Usa render parcial: NO re-renderiza toda la vista.
      */
     updatePosItemCount(productId, presentationId, delta) {
         const product = AppState.data.posActiveProducts.find(p => p.id === productId);
@@ -957,10 +1097,49 @@ const Actions = {
             if (presItem) {
                 const newCount = presItem.count + delta;
                 if (newCount >= 0) {
+                    UndoStack.push();
                     presItem.count = newCount;
                     Storage.save();
-                    Router.navigate('pos'); // Re-render
+                    Views._updatePosUI(productId, presentationId);
                 }
+            }
+        }
+    },
+
+    /** Deshace la última acción en el POS */
+    undoPosAction() {
+        const snapshot = UndoStack.pop();
+        if (snapshot) {
+            AppState.data.posActiveProducts = snapshot;
+            Storage.save();
+            Views._updateAllPosUI();
+        }
+    },
+
+    /** Reinicia todos los contadores de un producto a 0 */
+    resetProductCounts(productId) {
+        const product = AppState.data.posActiveProducts.find(p => p.id === productId);
+        if (product && product.presentationItems) {
+            const hasAny = product.presentationItems.some(pi => pi.count > 0);
+            if (!hasAny) return;
+            
+            UndoStack.push();
+            product.presentationItems.forEach(pi => { pi.count = 0; });
+            Storage.save();
+            Views._updateAllPosUI();
+        }
+    },
+
+    /** Reinicia el contador de una presentación específica a 0 */
+    resetPresentationCount(productId, presentationId) {
+        const product = AppState.data.posActiveProducts.find(p => p.id === productId);
+        if (product) {
+            const presItem = product.presentationItems.find(pi => pi.presentationId === presentationId);
+            if (presItem && presItem.count > 0) {
+                UndoStack.push();
+                presItem.count = 0;
+                Storage.save();
+                Views._updatePosUI(productId, presentationId);
             }
         }
     },
@@ -970,30 +1149,25 @@ const Actions = {
         if (item) {
             const newCount = item.count + delta;
             if (newCount >= 0) {
+                UndoStack.push();
                 item.count = newCount;
                 Storage.save();
-                Router.navigate('pos'); // Re-render to update UI
+                Router.navigate('pos');
             }
         }
     },
 
-    /**
-     * Filtra los productos en la vista de configuración del POS
-     * Basado en el texto ingresado en el buscador
-     */
     filterPosProducts() {
         const searchTerm = document.getElementById('pos-search')?.value.toLowerCase() || '';
         const productCards = document.querySelectorAll('#pos-setup-list .pos-checkbox-card');
         
         productCards.forEach(card => {
             const productName = card.getAttribute('data-product-name');
-            // Muestra el producto si contiene el término de búsqueda
             card.style.display = productName.includes(searchTerm) ? '' : 'none';
         });
     },
 
     closePosDay() {
-        // Calcular ventas desglosadas por presentación
         let totalAmount = 0;
         let items = [];
 
@@ -1019,14 +1193,13 @@ const Actions = {
             return;
         }
 
-        // Confirmación antes de cerrar el día, mostrando total y número de items
         if (items.length > 0) {
             const proceed = confirm(`¿Deseas cerrar las ventas del día?\nTotal: $${totalAmount.toFixed(2)}\nArtículos: ${items.length}`);
             if (!proceed) return;
         }
 
         const record = {
-            id: Date.now().toString(),
+            id: Utils.generateId(),
             date: new Date().toISOString(),
             totalAmount: totalAmount,
             items: items
@@ -1035,8 +1208,8 @@ const Actions = {
         if (!AppState.data.salesHistory) AppState.data.salesHistory = [];
         AppState.data.salesHistory.push(record);
 
-        // Reset Active POS
         AppState.data.posActiveProducts = [];
+        UndoStack.clear();
 
         Storage.save();
         alert(`Día cerrado con éxito. Total vendido: $${totalAmount.toFixed(2)}`);
@@ -1058,7 +1231,7 @@ const Actions = {
                     ${categories.map(c => `
                         <span style="background: var(--bg-body); padding: 0.3rem 0.6rem; border-radius: 20px; font-size: 0.9rem; border: 1px solid #ccc;">
                             ${c.name} 
-                            <span onclick="Actions.deleteCategory(${c.id})" style="cursor: pointer; margin-left: 0.5rem; color: var(--danger); font-weight: bold;">×</span>
+                            <span onclick="Actions.deleteCategory('${c.id}')" style="cursor: pointer; margin-left: 0.5rem; color: var(--danger); font-weight: bold;">×</span>
                         </span>
                     `).join('')}
                 </div>
@@ -1069,16 +1242,19 @@ const Actions = {
 
     addCategory(name) {
         if (!AppState.data.expenseCategories) AppState.data.expenseCategories = [];
-        AppState.data.expenseCategories.push({ id: Date.now(), name });
+        AppState.data.expenseCategories.push({ 
+            id: Utils.generateId(), 
+            name, 
+            createdAt: new Date().toISOString() 
+        });
         Storage.save();
         alert('Categoría agregada exitosamente');
-        Actions.openCategoryModal(); // Refresh modal
-        // Also refresh page if needed, but modal is open
+        Actions.openCategoryModal();
     },
 
     deleteCategory(id) {
         if (confirm('Eliminar categoría?')) {
-            AppState.data.expenseCategories = AppState.data.expenseCategories.filter(c => c.id !== id);
+            AppState.data.expenseCategories = AppState.data.expenseCategories.filter(c => String(c.id) !== String(id));
             Storage.save();
             Actions.openCategoryModal();
         }
@@ -1087,17 +1263,25 @@ const Actions = {
     // --- PRESENTATIONS (Tamaños) ---
     openPresentationsModal(adminOnly = false) {
         const presentations = AppState.data.presentations || [];
-        const listHtml = presentations.map(p => `
+        const listHtml = presentations.map(p => {
+            const isProtected = p.isProtected === true;
+            return `
             <div style="display:flex; align-items:center; justify-content:space-between; gap:0.5rem; padding:0.5rem 0; border-bottom:1px solid #f0f0f0;">
                 <div style="display:flex; gap:0.6rem; align-items:center;">
                     <div>
-                        <strong>${p.name}</strong>
+                        <strong>${p.name}</strong>${isProtected ? ' <span style="font-size:0.7rem; color: var(--primary);">🔒</span>' : ''}
                         <div style="font-size:0.85rem; color:var(--text-muted);">${p.liters} L</div>
                     </div>
                 </div>
-                ${adminOnly ? `<div style="display:flex; gap:0.5rem;"><button class=\"btn\" onclick=\"Actions.editPresentation(${p.id})\">✏️</button><button class=\"btn btn-danger\" onclick=\"Actions.deletePresentation(${p.id})\">🗑️</button></div>` : ''}
+                ${adminOnly ? `<div style="display:flex; gap:0.5rem;">
+                    <button class="btn" onclick="Actions.editPresentation(${p.id})">✏️</button>
+                    ${isProtected 
+                        ? '<button class="btn btn-danger" disabled title="Presentación base protegida" style="opacity: 0.4; cursor: not-allowed;">🔒</button>' 
+                        : `<button class="btn btn-danger" onclick="Actions.deletePresentation(${p.id})">🗑️</button>`
+                    }
+                </div>` : ''}
             </div>
-        `).join('');
+        `}).join('');
 
         const html = `
             <div>
@@ -1125,21 +1309,31 @@ const Actions = {
         const name = fd.get('name');
         const liters = parseFloat(fd.get('liters'));
         if (!AppState.data.presentations) AppState.data.presentations = [];
-        const newId = AppState.data.presentations.length ? Math.max(...AppState.data.presentations.map(p => p.id)) + 1 : 1;
-        AppState.data.presentations.push({ id: newId, name, liters });
+        const newId = AppState.data.presentations.length ? Math.max(...AppState.data.presentations.map(p => typeof p.id === 'number' ? p.id : 0)) + 1 : 1;
+        AppState.data.presentations.push({ 
+            id: newId, 
+            name, 
+            liters, 
+            createdAt: new Date().toISOString() 
+        });
         Storage.save();
-        // Reopen modal to refresh list
         Actions.openPresentationsModal(true);
     },
 
     deletePresentation(id) {
+        const pres = (AppState.data.presentations || []).find(p => p.id === id);
+        if (pres && pres.isProtected) {
+            alert('❌ Esta presentación base (500ml, 1L) no se puede eliminar.');
+            return;
+        }
+
         if (!confirm('Eliminar presentación? Esto también quitará la presentación de productos existentes.')) return;
         AppState.data.presentations = (AppState.data.presentations || []).filter(p => p.id !== id);
 
-        // Remove presentation references from products
         AppState.data.products = (AppState.data.products || []).map(prod => ({
             ...prod,
-            presentations: (prod.presentations || []).filter(pr => pr.id !== id)
+            presentations: (prod.presentations || []).filter(pr => pr.id !== id),
+            updatedAt: new Date().toISOString(),
         }));
 
         Storage.save();
@@ -1150,9 +1344,17 @@ const Actions = {
         const pres = (AppState.data.presentations || []).find(p => p.id === id);
         if (!pres) return alert('Presentación no encontrada');
 
+        const isProtected = pres.isProtected === true;
+        const warningHtml = isProtected 
+            ? `<div style="background: rgba(253, 121, 168, 0.1); border: 1px solid var(--accent); padding: 0.6rem; border-radius: 8px; margin-bottom: 0.8rem; font-size: 0.85rem;">
+                ⚠️ Presentación base. Si cambias los litros, los precios calculados de todos los productos que la usen se actualizarán.
+               </div>` 
+            : '';
+
         const html = `
             <form id="presentation-edit-form" onsubmit="event.preventDefault(); Actions.saveEditedPresentation(${id})">
-                    <div style="display:flex; gap:0.5rem; align-items:center; margin-bottom:0.5rem;">
+                ${warningHtml}
+                <div style="display:flex; gap:0.5rem; align-items:center; margin-bottom:0.5rem;">
                     <input type="text" name="name" value="${pres.name}" required style="flex:1;">
                     <input type="number" step="0.01" name="liters" value="${pres.liters}" required style="width:110px;">
                 </div>
@@ -1171,19 +1373,36 @@ const Actions = {
         const fd = new FormData(form);
         const name = fd.get('name');
         const liters = parseFloat(fd.get('liters'));
-        AppState.data.presentations = (AppState.data.presentations || []).map(p => p.id === id ? { ...p, name, liters } : p);
+        const oldPres = (AppState.data.presentations || []).find(p => p.id === id);
+        const litersChanged = oldPres && oldPres.liters !== liters;
+
+        AppState.data.presentations = (AppState.data.presentations || []).map(p => p.id === id ? { ...p, name, liters, updatedAt: new Date().toISOString() } : p);
+        
+        // Actualizar referencia en productos
+        AppState.data.products = (AppState.data.products || []).map(prod => ({
+            ...prod,
+            presentations: (prod.presentations || []).map(pp => pp.id === id ? { ...pp, name, liters } : pp),
+            updatedAt: new Date().toISOString(),
+        }));
+
         Storage.save();
+
+        if (litersChanged) {
+            alert('⚠️ Se cambió el tamaño. Los precios calculados (precio/L × litros) se actualizarán automáticamente.');
+        }
+
         Actions.openPresentationsModal(true);
     },
 
     saveExpense(form) {
         const formData = new FormData(form);
         const expense = {
-            id: Date.now().toString(),
+            id: Utils.generateId(),
             date: new Date().toISOString(),
             categoryId: formData.get('categoryId'),
             amount: formData.get('amount'),
             description: formData.get('description'),
+            createdAt: new Date().toISOString(),
         };
 
         if (!AppState.data.expenses) AppState.data.expenses = [];
@@ -1201,10 +1420,6 @@ const Actions = {
         }
     },
 
-    /**
-     * Abre un modal para confirmar la eliminación de todos los datos.
-     * El usuario debe escribir la palabra de confirmación "Ornitorinco".
-     */
     openDeleteDataModal() {
         const html = `
             <p style="color: var(--text-muted);">Esta acción eliminará todos los productos, ventas, gastos y configuraciones guardadas localmente. Es irreversible.</p>
@@ -1218,9 +1433,6 @@ const Actions = {
         Views.renderModal('Eliminar todos los datos', html);
     },
 
-    /**
-     * Elimina todos los datos guardados si la palabra de confirmación coincide.
-     */
     deleteAllData() {
         const input = document.getElementById('confirm-delete-input');
         const val = input ? input.value.trim() : '';
@@ -1231,16 +1443,12 @@ const Actions = {
 
         if (!confirm('¿Estás seguro? Esta acción eliminará permanentemente todos los datos.')) return;
 
-        // Borrar datos del LocalStorage
-        try {
-            localStorage.removeItem(Storage.KEY);
-        } catch (e) {}
+        try { localStorage.removeItem(Storage.KEY); } catch (e) {}
 
-        // Reiniciar AppState.data a estructura vacía (Storage.load se encargará de inicializar defaults)
-        AppState.data = { products: [], salesHistory: [], expenses: [], expenseCategories: [], presentations: [] };
+        AppState.data = { dataVersion: 2, products: [], salesHistory: [], expenses: [], expenseCategories: [], presentations: [], posActiveProducts: [] };
         Storage.save();
-        // Recargar datos y volver a la vista de inventario
         Storage.load();
+        UndoStack.clear();
         Views.closeModal();
         alert('Todos los datos han sido eliminados.');
         Router.navigate('inventory');
@@ -1253,29 +1461,19 @@ const Actions = {
 
         let filtered = AppState.data.salesHistory || [];
 
-        // Validación de rango: la fecha final no puede ser anterior a la inicial
         if (from && to) {
-            const fromDateCheck = new Date(from);
-            const toDateCheck = new Date(to);
-            if (toDateCheck < fromDateCheck) {
+            if (new Date(to) < new Date(from)) {
                 alert('La fecha final no puede ser anterior a la fecha inicial.');
                 return;
             }
         }
 
-        if (from) {
-            filtered = filtered.filter(s => {
-                const saleDateStr = s.date.split('T')[0]; // Obtener solo YYYY-MM-DD
-                return saleDateStr >= from;
-            });
-        }
-        if (to) {
-            filtered = filtered.filter(s => {
-                const saleDateStr = s.date.split('T')[0]; // Obtener solo YYYY-MM-DD
-                return saleDateStr <= to;
-            });
-        }
+        if (from) filtered = filtered.filter(s => s.date.split('T')[0] >= from);
+        if (to) filtered = filtered.filter(s => s.date.split('T')[0] <= to);
 
+        // Actualizar resumen y lista
+        const summaryEl = document.getElementById('sales-summary');
+        if (summaryEl) summaryEl.innerHTML = Views._renderSalesSummary(filtered);
         document.getElementById('sales-results').innerHTML = Views._renderSalesList(filtered);
     },
 
@@ -1286,32 +1484,19 @@ const Actions = {
 
         let filtered = AppState.data.expenses || [];
 
-        // Validación de rango: la fecha final no puede ser anterior a la inicial
         if (from && to) {
-            const fromDateCheck = new Date(from);
-            const toDateCheck = new Date(to);
-            if (toDateCheck < fromDateCheck) {
+            if (new Date(to) < new Date(from)) {
                 alert('La fecha final no puede ser anterior a la fecha inicial.');
                 return;
             }
         }
 
-        if (from) {
-            filtered = filtered.filter(e => {
-                const expenseDateStr = e.date.split('T')[0]; // Obtener solo YYYY-MM-DD
-                return expenseDateStr >= from;
-            });
-        }
-        if (to) {
-            filtered = filtered.filter(e => {
-                const expenseDateStr = e.date.split('T')[0]; // Obtener solo YYYY-MM-DD
-                return expenseDateStr <= to;
-            });
-        }
+        if (from) filtered = filtered.filter(e => e.date.split('T')[0] >= from);
+        if (to) filtered = filtered.filter(e => e.date.split('T')[0] <= to);
         if (keyword) {
             filtered = filtered.filter(e =>
                 (e.description && e.description.toLowerCase().includes(keyword)) ||
-                (AppState.data.expenseCategories.find(c => c.id == e.categoryId)?.name || '').toLowerCase().includes(keyword)
+                (AppState.data.expenseCategories.find(c => String(c.id) === String(e.categoryId))?.name || '').toLowerCase().includes(keyword)
             );
         }
 
@@ -1319,7 +1504,6 @@ const Actions = {
     },
 
     generateReport(type, format) {
-        // Gather data similar to filters
         let data = [];
         let headers = [];
         let rows = [];
@@ -1332,35 +1516,18 @@ const Actions = {
             const from = document.getElementById('sales-date-from').value;
             const to = document.getElementById('sales-date-to').value;
 
-            // Re-apply filter logic using proper Date objects (incluye mismo día)
             let filtered = AppState.data.salesHistory || [];
 
-            // Validate range first
-            if (from && to) {
-                const fromDateCheck = new Date(from);
-                const toDateCheck = new Date(to);
-                if (toDateCheck < fromDateCheck) {
-                    alert('La fecha final no puede ser anterior a la fecha inicial.');
-                    return;
-                }
+            if (from && to && new Date(to) < new Date(from)) {
+                alert('La fecha final no puede ser anterior a la fecha inicial.');
+                return;
             }
 
-            if (from) {
-                filtered = filtered.filter(s => {
-                    const saleDateStr = s.date.split('T')[0]; // Obtener solo YYYY-MM-DD
-                    return saleDateStr >= from;
-                });
-            }
-            if (to) {
-                filtered = filtered.filter(s => {
-                    const saleDateStr = s.date.split('T')[0]; // Obtener solo YYYY-MM-DD
-                    return saleDateStr <= to;
-                });
-            }
+            if (from) filtered = filtered.filter(s => s.date.split('T')[0] >= from);
+            if (to) filtered = filtered.filter(s => s.date.split('T')[0] <= to);
 
             data = filtered;
 
-            // Determinar rango de fechas real del conjunto filtrado para mostrar fechas explícitas
             let minDate = null, maxDate = null;
             data.forEach(s => {
                 const d = new Date(s.date);
@@ -1371,29 +1538,29 @@ const Actions = {
             const fromLabel = from || (minDate ? minDate.toLocaleDateString() : new Date().toLocaleDateString());
             const toLabel = to || (maxDate ? maxDate.toLocaleDateString() : new Date().toLocaleDateString());
             dateRange = `Desde: ${fromLabel} - Hasta: ${toLabel}`;
-            // Prepare ISO date range for filename
             const fromISO = from || (minDate ? minDate.toISOString().split('T')[0] : new Date().toISOString().split('T')[0]);
             const toISO = to || (maxDate ? maxDate.toISOString().split('T')[0] : new Date().toISOString().split('T')[0]);
             fileDateRange = `${fromISO}_${toISO}`;
             
-            // Crear desglose detallado por producto
+            // Desglose por producto Y presentación (evita mezcla de 500ml y 1L al mismo precio)
             let productsData = {};
             let totalVentas = 0;
             let totalProductos = 0;
             
             data.forEach(sale => {
                 sale.items.forEach(item => {
-                    // Buscar producto por `productId` si existe, sino por nombre (case-insensitive)
                     const product = AppState.data.products.find(p => (
                         (item.productId && p.id === item.productId) ||
                         (p.name && p.name.trim().toLowerCase() === (item.name || '').trim().toLowerCase())
                     ));
                     const productStatus = product ? 'Activo' : 'DESCONTINUADO';
-                    const key = `${item.name}|${item.price}|${productStatus}`;
+                    const presName = item.presentationName || '';
+                    const key = `${item.name}|${presName}|${item.price}|${productStatus}`;
                     
                     if (!productsData[key]) {
                         productsData[key] = {
                             name: item.name,
+                            presentation: presName,
                             price: item.price,
                             status: productStatus,
                             quantity: 0,
@@ -1407,18 +1574,18 @@ const Actions = {
                 });
             });
             
-            headers = [['Producto', 'Precio Unit.', 'Cantidad', 'Total Vendido', 'Estado']];
+            headers = [['Producto', 'Presentación', 'Precio Unit.', 'Cantidad', 'Total Vendido', 'Estado']];
             rows = Object.values(productsData).map(p => [
                 p.name,
+                p.presentation || '-',
                 `$${p.price.toFixed(2)}`,
                 `${p.quantity} unidades`,
                 `$${p.total.toFixed(2)}`,
                 p.status
             ]);
             
-            // Agregar fila de totales
-            rows.push(['', '', '', '', '']);
-            rows.push(['TOTALES', '', `${totalProductos} unidades`, `$${totalVentas.toFixed(2)}`, '']);
+            rows.push(['', '', '', '', '', '']);
+            rows.push(['TOTALES', '', '', `${totalProductos} unidades`, `$${totalVentas.toFixed(2)}`, '']);
         } else if (type === 'expenses') {
             title = 'Reporte de Gastos';
             const from = document.getElementById('filter-date-from').value;
@@ -1427,36 +1594,20 @@ const Actions = {
 
             let filtered = AppState.data.expenses || [];
 
-            // Validate range first
-            if (from && to) {
-                const fromDateCheck = new Date(from);
-                const toDateCheck = new Date(to);
-                if (toDateCheck < fromDateCheck) {
-                    alert('La fecha final no puede ser anterior a la fecha inicial.');
-                    return;
-                }
+            if (from && to && new Date(to) < new Date(from)) {
+                alert('La fecha final no puede ser anterior a la fecha inicial.');
+                return;
             }
 
-            if (from) {
-                filtered = filtered.filter(e => {
-                    const expenseDateStr = e.date.split('T')[0]; // Obtener solo YYYY-MM-DD
-                    return expenseDateStr >= from;
-                });
-            }
-            if (to) {
-                filtered = filtered.filter(e => {
-                    const expenseDateStr = e.date.split('T')[0]; // Obtener solo YYYY-MM-DD
-                    return expenseDateStr <= to;
-                });
-            }
+            if (from) filtered = filtered.filter(e => e.date.split('T')[0] >= from);
+            if (to) filtered = filtered.filter(e => e.date.split('T')[0] <= to);
             if (keyword) filtered = filtered.filter(e =>
                 (e.description && e.description.toLowerCase().includes(keyword)) ||
-                (AppState.data.expenseCategories.find(c => c.id == e.categoryId)?.name || '').toLowerCase().includes(keyword)
+                (AppState.data.expenseCategories.find(c => String(c.id) === String(e.categoryId))?.name || '').toLowerCase().includes(keyword)
             );
 
             data = filtered;
 
-            // Determinar rango de fechas real del conjunto filtrado para mostrar fechas explícitas
             let minDateE = null, maxDateE = null;
             data.forEach(exp => {
                 const d = new Date(exp.date);
@@ -1467,14 +1618,13 @@ const Actions = {
             const fromLabelE = from || (minDateE ? minDateE.toLocaleDateString() : new Date().toLocaleDateString());
             const toLabelE = to || (maxDateE ? maxDateE.toLocaleDateString() : new Date().toLocaleDateString());
             dateRange = `Desde: ${fromLabelE} - Hasta: ${toLabelE}`;
-            // Prepare ISO date range for filename
             const fromISOE = from || (minDateE ? minDateE.toISOString().split('T')[0] : new Date().toISOString().split('T')[0]);
             const toISOE = to || (maxDateE ? maxDateE.toISOString().split('T')[0] : new Date().toISOString().split('T')[0]);
             fileDateRange = `${fromISOE}_${toISOE}`;
             headers = [['Fecha', 'Categoría', 'Descripción', 'Monto']];
             rows = data.map(exp => [
                 new Date(exp.date).toLocaleDateString(),
-                AppState.data.expenseCategories.find(c => c.id == exp.categoryId)?.name || 'General',
+                AppState.data.expenseCategories.find(c => String(c.id) === String(exp.categoryId))?.name || 'General',
                 exp.description || '',
                 `$${parseFloat(exp.amount).toFixed(2)}`
             ]);
@@ -1501,7 +1651,7 @@ const Actions = {
                 body: rows,
                 startY: 40,
                 theme: 'grid',
-                headStyles: { fillColor: [108, 92, 231] }, // Brand color
+                headStyles: { fillColor: [108, 92, 231] },
                 bodyStyles: { textColor: [45, 52, 54] },
                 alternateRowStyles: { fillColor: [244, 247, 246] }
             });
@@ -1521,14 +1671,11 @@ const Actions = {
 };
 
 // Confirmación al salir de la aplicación
-// Cuando `requireExitConfirmation` sea true el navegador preguntará al usuario
-// antes de cerrar o refrescar la página. Esto usa la API estándar `beforeunload`.
 let requireExitConfirmation = true;
 
 window.addEventListener('beforeunload', (e) => {
     if (!requireExitConfirmation) return;
     e.preventDefault();
-    // Chrome requiere asignar returnValue para mostrar el diálogo de confirmación
     e.returnValue = '';
 });
 
