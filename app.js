@@ -447,7 +447,7 @@ const Views = {
                                     const count = presItem?.count || 0;
                                     
                                     return `
-                                        <div style="background-color: #f5f5f5; padding: 0.8rem; border-radius: 8px; margin-bottom: 0.5rem;">
+                                        <div class="pos-pres-item" style="padding: 0.8rem; border-radius: 8px; margin-bottom: 0.5rem;">
                                             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
                                                 <span style="font-weight: 600;">${p.name}</span>
                                                 <span style="color: var(--primary); font-weight: bold;">$${price}</span>
@@ -554,7 +554,7 @@ const Views = {
                 <button class="btn" style="background-color: var(--secondary); color: white;" onclick="Actions.openCategoryModal()">⚙️ Categorías</button>
             </div>
 
-            <div class="card">
+            <div class="card scrollable-small">
                 <form onsubmit="event.preventDefault(); Actions.saveExpense(this)">
                     <div class="grid" style="grid-template-columns: 1fr 1fr; gap: 1rem;">
                         <div class="form-group">
@@ -619,7 +619,7 @@ const Views = {
             </div>
 
             <!-- Results -->
-            <div id="expense-results">
+            <div id="expense-results" class="scrollable-small">
                 ${this._renderExpenseList(allExpenses, categories)}
             </div>
         `;
@@ -832,10 +832,23 @@ const Actions = {
     saveProduct(id) {
         const form = document.getElementById('product-form');
         const formData = new FormData(form);
-        const name = formData.get('name');
+        const name = (formData.get('name') || '').trim();
         const pricePerLiter = parseFloat(formData.get('pricePerLiter'));
         const color = formData.get('color');
         const presentations = JSON.parse(formData.get('presentations') || '[]');
+
+        // Validaciones: nombre no vacío y único (case-insensitive)
+        if (!name) {
+            alert('El nombre del producto no puede estar vacío.');
+            return;
+        }
+
+        const normalized = name.toLowerCase();
+        const duplicate = (AppState.data.products || []).find(p => (p.name || '').trim().toLowerCase() === normalized && p.id !== id);
+        if (duplicate) {
+            alert('Ya existe un producto con ese nombre. Usa un nombre distinto.');
+            return;
+        }
 
         if (presentations.length === 0) {
             alert('Por favor selecciona al menos una presentación');
@@ -976,6 +989,12 @@ const Actions = {
             return;
         }
 
+        // Confirmación antes de cerrar el día, mostrando total y número de items
+        if (items.length > 0) {
+            const proceed = confirm(`¿Deseas cerrar las ventas del día?\nTotal: $${totalAmount.toFixed(2)}\nArtículos: ${items.length}`);
+            if (!proceed) return;
+        }
+
         const record = {
             id: Date.now().toString(),
             date: new Date().toISOString(),
@@ -1022,6 +1041,7 @@ const Actions = {
         if (!AppState.data.expenseCategories) AppState.data.expenseCategories = [];
         AppState.data.expenseCategories.push({ id: Date.now(), name });
         Storage.save();
+        alert('Categoría agregada exitosamente');
         Actions.openCategoryModal(); // Refresh modal
         // Also refresh page if needed, but modal is open
     },
@@ -1139,6 +1159,7 @@ const Actions = {
         if (!AppState.data.expenses) AppState.data.expenses = [];
         AppState.data.expenses.push(expense);
         Storage.save();
+        alert('Gasto guardado en el reporte de gastos');
         Router.navigate('expenses');
     },
 
@@ -1156,6 +1177,16 @@ const Actions = {
         const to = document.getElementById('sales-date-to').value;
 
         let filtered = AppState.data.salesHistory || [];
+
+        // Validación de rango: la fecha final no puede ser anterior a la inicial
+        if (from && to) {
+            const fromDateCheck = new Date(from);
+            const toDateCheck = new Date(to);
+            if (toDateCheck < fromDateCheck) {
+                alert('La fecha final no puede ser anterior a la fecha inicial.');
+                return;
+            }
+        }
 
         if (from) {
             const fromDate = new Date(from);
@@ -1177,6 +1208,16 @@ const Actions = {
         const keyword = document.getElementById('filter-keyword').value.toLowerCase();
 
         let filtered = AppState.data.expenses || [];
+
+        // Validación de rango: la fecha final no puede ser anterior a la inicial
+        if (from && to) {
+            const fromDateCheck = new Date(from);
+            const toDateCheck = new Date(to);
+            if (toDateCheck < fromDateCheck) {
+                alert('La fecha final no puede ser anterior a la fecha inicial.');
+                return;
+            }
+        }
 
         if (from) {
             const fromDate = new Date(from);
@@ -1212,10 +1253,29 @@ const Actions = {
             const to = document.getElementById('sales-date-to').value;
             dateRange = `Desde: ${from || 'Inicio'} - Hasta: ${to || 'Hoy'}`;
 
-            // Re-apply filter logic
+            // Re-apply filter logic using proper Date objects (incluye mismo día)
             let filtered = AppState.data.salesHistory || [];
-            if (from) filtered = filtered.filter(s => new Date(s.date) >= new Date(from).setHours(0, 0, 0, 0));
-            if (to) filtered = filtered.filter(s => new Date(s.date) <= new Date(to).setHours(23, 59, 59, 999));
+
+            // Validate range first
+            if (from && to) {
+                const fromDateCheck = new Date(from);
+                const toDateCheck = new Date(to);
+                if (toDateCheck < fromDateCheck) {
+                    alert('La fecha final no puede ser anterior a la fecha inicial.');
+                    return;
+                }
+            }
+
+            if (from) {
+                const fromDate = new Date(from);
+                fromDate.setHours(0, 0, 0, 0);
+                filtered = filtered.filter(s => new Date(s.date) >= fromDate);
+            }
+            if (to) {
+                const toDate = new Date(to);
+                toDate.setHours(23, 59, 59, 999);
+                filtered = filtered.filter(s => new Date(s.date) <= toDate);
+            }
 
             data = filtered;
             
@@ -1226,7 +1286,11 @@ const Actions = {
             
             data.forEach(sale => {
                 sale.items.forEach(item => {
-                    const product = AppState.data.products.find(p => p.id === item.name);
+                    // Buscar producto por `productId` si existe, sino por nombre (case-insensitive)
+                    const product = AppState.data.products.find(p => (
+                        (item.productId && p.id === item.productId) ||
+                        (p.name && p.name.trim().toLowerCase() === (item.name || '').trim().toLowerCase())
+                    ));
                     const productStatus = product ? 'Activo' : 'DESCONTINUADO';
                     const key = `${item.name}|${item.price}|${productStatus}`;
                     
@@ -1322,6 +1386,18 @@ const Actions = {
         }
     }
 };
+
+// Confirmación al salir de la aplicación
+// Cuando `requireExitConfirmation` sea true el navegador preguntará al usuario
+// antes de cerrar o refrescar la página. Esto usa la API estándar `beforeunload`.
+let requireExitConfirmation = true;
+
+window.addEventListener('beforeunload', (e) => {
+    if (!requireExitConfirmation) return;
+    e.preventDefault();
+    // Chrome requiere asignar returnValue para mostrar el diálogo de confirmación
+    e.returnValue = '';
+});
 
 // Initialize App
 document.addEventListener('DOMContentLoaded', () => {

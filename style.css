@@ -755,6 +755,12 @@ textarea:focus {
 /* Make sure inner presentation boxes in POS look neat */
 .pos-product-card .count-display { font-size: 1.25rem; }
 
+/* Presentación dentro del POS: caja que contiene nombre/precio y controles */
+.pos-pres-item {
+    background-color: #f5f5f5; /* claro por defecto */
+    color: var(--text-main);
+}
+
 /**
  * TARJETA DE CHECKBOX PARA CONFIGURAR POS
  * Permite seleccionar qué productos vender hoy
@@ -858,6 +864,24 @@ textarea:focus {
     color: var(--text-main);
 }
 
+/* Ajustes para modo oscuro específicos del POS */
+@media (prefers-color-scheme: dark) {
+    .pos-pres-item {
+        background-color: rgba(255,255,255,0.03) !important;
+        color: var(--text-main) !important;
+        box-shadow: inset 0 1px 0 rgba(255,255,255,0.02);
+    }
+
+    .btn-minus {
+        background-color: rgba(255,255,255,0.06);
+        color: var(--text-main);
+    }
+
+    .count-display {
+        color: var(--text-main);
+    }
+}
+
 /**
  * BOTÓN MÁS (+) EN CONTADOR
  */
@@ -875,4 +899,31 @@ textarea:focus {
     font-weight: bold;
     width: 40px;
     text-align: center;
+}
+
+/* Pequeño scroll vertical reutilizable para dar sensación de movimiento
+   usado en vistas de gastos (Agregar/Ver Gastos) incluso cuando están vacías */
+.scrollable-small {
+    max-height: 36vh; /* suficientemente alto pero deja espacio para navegación */
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch; /* suaviza el scroll en móviles */
+}
+
+/* Indicadores sutiles para mostrar que hay scroll disponible */
+.scrollable-small::before,
+.scrollable-small::after {
+    content: '';
+    pointer-events: none;
+    position: sticky;
+    left: 0;
+    right: 0;
+    height: 8px;
+}
+.scrollable-small::before { top: 0; box-shadow: inset 0 6px 8px -6px rgba(0,0,0,0.06); }
+.scrollable-small::after { bottom: 0; box-shadow: inset 0 -6px 8px -6px rgba(0,0,0,0.06); }
+
+@media (prefers-color-scheme: dark) {
+    .scrollable-small::before, .scrollable-small::after {
+        box-shadow: inset 0 6px 8px -6px rgba(255,255,255,0.02);
+    }
 }
