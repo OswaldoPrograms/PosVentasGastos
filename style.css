@@ -179,6 +179,13 @@ body {
     overflow-y: auto;           /* Permite scroll vertical si el contenido es muy largo */
     padding: 2rem;
     scroll-behavior: smooth;    /* Scroll suave */
+    -webkit-overflow-scrolling: touch; /* Scroll nativo en iOS */
+}
+
+/* Vista con scroll habilitado para sensación de movimiento */
+.scrollable-view {
+    min-height: 100%;
+    padding-bottom: 2rem;
 }
 
 /* --- COMPONENTES COMUNES --- */
@@ -710,6 +717,11 @@ textarea:focus {
     /* Ensure main content has enough bottom padding to be visible above fixed bottom nav */
     #main-content {
         padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 140px);
+    }
+    
+    /* Mejorar experiencia de scroll en vistas con contenido adicional */
+    .scrollable-view {
+        padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 80px);
     }
 
     /* Extra spacing for the grid so the last card is fully visible */

@@ -578,9 +578,12 @@ const Views = {
                     </div>
                 </form>
             </div>
+            
+            <!-- Espacio adicional para permitir scroll en móviles -->
+            <div style="height: 60vh; min-height: 300px;"></div>
         `;
         // Hacer que el fondo (contenedor de la vista) sea el que haga scroll, no la tarjeta
-        container.classList.add('scrollable-bg');
+        container.classList.add('scrollable-view');
         return container;
     },
 
