@@ -725,7 +725,7 @@ textarea:focus {
     }
 
     /* Extra spacing for the grid so the last card is fully visible */
-    .grid { padding-bottom: 1rem; }
+    .grid { padding-bottom: 3rem; }
 }
 
 /* --- MODO HORIZONTAL EN MÓVILES (LANDSCAPE) --- */
@@ -805,13 +805,14 @@ textarea:focus {
     /* Gradiente indicador de que hay más contenido abajo */
     #main-nav::after {
         content: '';
-        position: absolute;
+        position: fixed;
         left: 0;
-        right: 0;
+        width: 100px;
         bottom: 0;
-        height: 20px;
-        background: linear-gradient(to top, var(--bg-card), transparent);
+        height: 30px;
+        background: linear-gradient(to top, var(--bg-card) 0%, var(--bg-card) 20%, transparent 100%);
         pointer-events: none;
+        z-index: 10;
     }
 }
 
