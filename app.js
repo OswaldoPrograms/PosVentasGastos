@@ -355,11 +355,8 @@ const Views = {
 
                     <div style="display: flex; gap: 0.3rem; flex-wrap: wrap; margin: 0.8rem 0; justify-content: center;">
                         ${presentations.map(p => {
-                            // Si el color del producto es muy claro usamos texto negro,
-                            // en caso contrario usamos el color del producto para el texto
-                            const contrast = Utils.getContrastColor(color);
-                            const pillTextColor = (contrast === '#000000') ? '#000000' : color;
-                            return `<span class="presentation-pill" style="border: 1px solid ${Utils.hexToRgba(color, 0.18)}; color: ${pillTextColor};">${p.name}</span>`;
+                            // Usar el color del producto para el borde y el color del tema para el texto
+                            return `<span class="presentation-pill" style="border: 2px solid ${color}; color: var(--text-main);">${p.name}</span>`;
                         }).join('')}
                     </div>
 
@@ -580,7 +577,7 @@ const Views = {
             </div>
             
             <!-- Espacio adicional para permitir scroll en móviles -->
-            <div style="height: 60vh; min-height: 300px;"></div>
+            <div style="height: 25vh; min-height: 150px;"></div>
         `;
         // Hacer que el fondo (contenedor de la vista) sea el que haga scroll, no la tarjeta
         container.classList.add('scrollable-view');
@@ -1267,21 +1264,15 @@ const Actions = {
         }
 
         if (from) {
-            const fromDate = new Date(from);
-            fromDate.setHours(0, 0, 0, 0);
             filtered = filtered.filter(s => {
-                const saleDate = new Date(s.date);
-                saleDate.setHours(0, 0, 0, 0);
-                return saleDate >= fromDate;
+                const saleDateStr = s.date.split('T')[0]; // Obtener solo YYYY-MM-DD
+                return saleDateStr >= from;
             });
         }
         if (to) {
-            const toDate = new Date(to);
-            toDate.setHours(23, 59, 59, 999);
             filtered = filtered.filter(s => {
-                const saleDate = new Date(s.date);
-                saleDate.setHours(23, 59, 59, 999);
-                return saleDate <= toDate;
+                const saleDateStr = s.date.split('T')[0]; // Obtener solo YYYY-MM-DD
+                return saleDateStr <= to;
             });
         }
 
@@ -1306,21 +1297,15 @@ const Actions = {
         }
 
         if (from) {
-            const fromDate = new Date(from);
-            fromDate.setHours(0, 0, 0, 0);
             filtered = filtered.filter(e => {
-                const expenseDate = new Date(e.date);
-                expenseDate.setHours(0, 0, 0, 0);
-                return expenseDate >= fromDate;
+                const expenseDateStr = e.date.split('T')[0]; // Obtener solo YYYY-MM-DD
+                return expenseDateStr >= from;
             });
         }
         if (to) {
-            const toDate = new Date(to);
-            toDate.setHours(23, 59, 59, 999);
             filtered = filtered.filter(e => {
-                const expenseDate = new Date(e.date);
-                expenseDate.setHours(23, 59, 59, 999);
-                return expenseDate <= toDate;
+                const expenseDateStr = e.date.split('T')[0]; // Obtener solo YYYY-MM-DD
+                return expenseDateStr <= to;
             });
         }
         if (keyword) {
@@ -1361,21 +1346,15 @@ const Actions = {
             }
 
             if (from) {
-                const fromDate = new Date(from);
-                fromDate.setHours(0, 0, 0, 0);
                 filtered = filtered.filter(s => {
-                    const saleDate = new Date(s.date);
-                    saleDate.setHours(0, 0, 0, 0);
-                    return saleDate >= fromDate;
+                    const saleDateStr = s.date.split('T')[0]; // Obtener solo YYYY-MM-DD
+                    return saleDateStr >= from;
                 });
             }
             if (to) {
-                const toDate = new Date(to);
-                toDate.setHours(23, 59, 59, 999);
                 filtered = filtered.filter(s => {
-                    const saleDate = new Date(s.date);
-                    saleDate.setHours(23, 59, 59, 999);
-                    return saleDate <= toDate;
+                    const saleDateStr = s.date.split('T')[0]; // Obtener solo YYYY-MM-DD
+                    return saleDateStr <= to;
                 });
             }
 
@@ -1459,21 +1438,15 @@ const Actions = {
             }
 
             if (from) {
-                const fromDate = new Date(from);
-                fromDate.setHours(0, 0, 0, 0);
                 filtered = filtered.filter(e => {
-                    const expenseDate = new Date(e.date);
-                    expenseDate.setHours(0, 0, 0, 0);
-                    return expenseDate >= fromDate;
+                    const expenseDateStr = e.date.split('T')[0]; // Obtener solo YYYY-MM-DD
+                    return expenseDateStr >= from;
                 });
             }
             if (to) {
-                const toDate = new Date(to);
-                toDate.setHours(23, 59, 59, 999);
                 filtered = filtered.filter(e => {
-                    const expenseDate = new Date(e.date);
-                    expenseDate.setHours(23, 59, 59, 999);
-                    return expenseDate <= toDate;
+                    const expenseDateStr = e.date.split('T')[0]; // Obtener solo YYYY-MM-DD
+                    return expenseDateStr <= to;
                 });
             }
             if (keyword) filtered = filtered.filter(e =>
