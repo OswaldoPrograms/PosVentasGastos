@@ -730,19 +730,33 @@ textarea:focus {
 
 /* --- MODO HORIZONTAL EN MÓVILES (LANDSCAPE) --- */
 @media (max-width: 1024px) and (max-height: 600px) and (orientation: landscape) {
-    /* En modo horizontal, la navegación debe permitir scroll horizontal */
-    #main-nav {
-        overflow-x: auto;
-        overflow-y: hidden;
-        padding: 0.4rem 0.5rem;
-        -webkit-overflow-scrolling: touch;
-        scrollbar-width: thin; /* Para Firefox */
-        display: block; /* Cambiar de flex a block para mejor control */
+    /* En modo horizontal, cambiar la navegación a vertical con scroll */
+    #app {
+        flex-direction: row; /* Layout horizontal: nav a la izquierda, contenido a la derecha */
     }
     
-    /* Ocultar scrollbar pero mantener funcionalidad */
+    /* Ocultar marca/logo en modo landscape para ahorrar espacio */
+    .nav-brand {
+        display: none;
+    }
+    
+    #main-nav {
+        position: relative;
+        bottom: auto;
+        left: auto;
+        width: 100px; /* Ancho fijo para la barra lateral */
+        height: 100vh;
+        overflow-y: auto;
+        overflow-x: hidden;
+        padding: 0.5rem 0.3rem;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: thin;
+        border-right: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    
+    /* Scrollbar sutil */
     #main-nav::-webkit-scrollbar {
-        height: 3px;
+        width: 3px;
     }
     
     #main-nav::-webkit-scrollbar-thumb {
@@ -752,48 +766,51 @@ textarea:focus {
     
     .nav-links {
         display: flex;
-        flex-direction: row;
-        flex-wrap: nowrap; /* NO permitir que se ajusten a nueva línea */
-        overflow-x: visible;
+        flex-direction: column; /* Vertical en lugar de horizontal */
+        flex-wrap: nowrap;
         gap: 0.5rem;
-        width: max-content; /* El ancho será el necesario para todos los elementos */
+        width: 100%;
         padding: 0;
         margin: 0;
     }
     
     .nav-links li {
-        padding: 0.5rem 0.8rem;
-        font-size: 0.7rem;
-        white-space: nowrap;
-        flex-shrink: 0; /* No permitir que se compriman */
-        min-width: 70px;
-        max-width: 90px;
+        padding: 0.6rem 0.4rem;
+        font-size: 0.65rem;
+        white-space: normal;
+        text-align: center;
+        flex-shrink: 0;
+        width: 100%;
         display: flex;
         flex-direction: column;
         align-items: center;
         justify-content: center;
+        min-height: 60px;
     }
     
     .nav-links li .icon {
-        font-size: 1.3rem;
+        font-size: 1.4rem;
         margin-bottom: 0.2rem;
     }
     
     /* Reducir padding del contenido principal */
     #main-content {
+        flex: 1;
         padding: 1rem;
-        padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 90px);
+        padding-bottom: 1rem;
+        height: 100vh;
+        overflow-y: auto;
     }
     
-    /* Agregar indicador visual de que hay más contenido */
+    /* Gradiente indicador de que hay más contenido abajo */
     #main-nav::after {
         content: '';
         position: absolute;
+        left: 0;
         right: 0;
-        top: 0;
         bottom: 0;
-        width: 20px;
-        background: linear-gradient(to left, var(--bg-card), transparent);
+        height: 20px;
+        background: linear-gradient(to top, var(--bg-card), transparent);
         pointer-events: none;
     }
 }
