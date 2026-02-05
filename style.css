@@ -730,37 +730,71 @@ textarea:focus {
 
 /* --- MODO HORIZONTAL EN MÓVILES (LANDSCAPE) --- */
 @media (max-width: 1024px) and (max-height: 600px) and (orientation: landscape) {
-    /* En modo horizontal, reducir altura del nav y permitir scroll horizontal */
+    /* En modo horizontal, la navegación debe permitir scroll horizontal */
     #main-nav {
         overflow-x: auto;
         overflow-y: hidden;
-        padding: 0.3rem 0.5rem;
+        padding: 0.4rem 0.5rem;
         -webkit-overflow-scrolling: touch;
+        scrollbar-width: thin; /* Para Firefox */
+        display: block; /* Cambiar de flex a block para mejor control */
+    }
+    
+    /* Ocultar scrollbar pero mantener funcionalidad */
+    #main-nav::-webkit-scrollbar {
+        height: 3px;
+    }
+    
+    #main-nav::-webkit-scrollbar-thumb {
+        background: rgba(255, 255, 255, 0.3);
+        border-radius: 3px;
     }
     
     .nav-links {
-        flex-wrap: nowrap;
-        overflow-x: auto;
-        gap: 0.3rem;
-        min-width: min-content;
+        display: flex;
+        flex-direction: row;
+        flex-wrap: nowrap; /* NO permitir que se ajusten a nueva línea */
+        overflow-x: visible;
+        gap: 0.5rem;
+        width: max-content; /* El ancho será el necesario para todos los elementos */
+        padding: 0;
+        margin: 0;
     }
     
     .nav-links li {
-        padding: 0.4rem 0.6rem;
-        font-size: 0.65rem;
+        padding: 0.5rem 0.8rem;
+        font-size: 0.7rem;
         white-space: nowrap;
-        flex-shrink: 0;
-        min-width: 60px;
+        flex-shrink: 0; /* No permitir que se compriman */
+        min-width: 70px;
+        max-width: 90px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
     }
     
     .nav-links li .icon {
-        font-size: 1.2rem;
+        font-size: 1.3rem;
+        margin-bottom: 0.2rem;
     }
     
     /* Reducir padding del contenido principal */
     #main-content {
         padding: 1rem;
         padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 90px);
+    }
+    
+    /* Agregar indicador visual de que hay más contenido */
+    #main-nav::after {
+        content: '';
+        position: absolute;
+        right: 0;
+        top: 0;
+        bottom: 0;
+        width: 20px;
+        background: linear-gradient(to left, var(--bg-card), transparent);
+        pointer-events: none;
     }
 }
 
