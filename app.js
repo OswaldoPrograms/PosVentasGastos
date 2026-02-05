@@ -41,7 +41,7 @@ const Utils = {
      */
     getColorForProduct(name) {
         // Paleta de colores disponibles para los productos
-        const colors = ['#FFFFFF','#F8F9FA','#EAEAEA','#F1F2F6','#6C5CE7','#5A3FD9','#A29BFE','#6C63FF','#0984E3','#74B9FF','#74C0FC','#00CEC9','#00A8A8','#55EFC4','#00B894','#00A36C','#FD79A8','#E84393','#FF6B6B','#FF7675','#D63031','#FF6348','#FDCB6E','#FFEAA7','#E17055','#E67E22','#FF9F1C','#B2BEC3','#636E72','#2D3436','#1E272E','#FFE4E1'];
+        const colors = ['#FFFFFF','#6C5CE7','#5A3FD9','#A29BFE','#6C63FF','#0984E3','#74B9FF','#74C0FC','#00CEC9','#00A8A8','#55EFC4','#00B894','#00A36C','#FD79A8','#E84393','#FF6B6B','#FF7675','#D63031','#FF6348','#FDCB6E','#FFEAA7','#E17055','#E67E22','#FF9F1C','#B2BEC3','#636E72','#2D3436','#1E272E'];
         
         // Calcula un hash del nombre para asignar color de forma consistente
         let hash = 0;
@@ -385,7 +385,7 @@ const Views = {
                 </div>
                 <div class="card" style="margin-bottom: 1rem;">
                     <p style="color: var(--text-muted); margin-bottom: 1rem;">Selecciona los productos disponibles para vender hoy:</p>
-                    <input type="text" id="pos-search" placeholder="🔍 Buscar producto..." style="width: 100%;" onkeyup="Actions.filterPosProducts()">
+                    <input type="text" id="pos-search" placeholder="🔍 Buscar producto..." style="width: 100%;" onkeyup="Actions.filterPosProducts()" onkeydown="if(event.key==='Enter'){ this.blur(); }">
                 </div>
                 <div class="pos-setup-list" id="pos-setup-list">
                         ${AppState.data.products.map(p => {
@@ -554,7 +554,7 @@ const Views = {
                 <button class="btn" style="background-color: var(--secondary); color: white;" onclick="Actions.openCategoryModal()">⚙️ Categorías</button>
             </div>
 
-            <div class="card scrollable-small">
+            <div class="card">
                 <form onsubmit="event.preventDefault(); Actions.saveExpense(this)">
                     <div class="grid" style="grid-template-columns: 1fr 1fr; gap: 1rem;">
                         <div class="form-group">
@@ -579,6 +579,8 @@ const Views = {
                 </form>
             </div>
         `;
+        // Hacer que el fondo (contenedor de la vista) sea el que haga scroll, no la tarjeta
+        container.classList.add('scrollable-bg');
         return container;
     },
 
@@ -606,7 +608,7 @@ const Views = {
                     </div>
                     <div class="form-group">
                         <label>Buscar</label>
-                        <input type="text" id="filter-keyword" placeholder="Palabra clave...">
+                        <input type="text" id="filter-keyword" placeholder="Palabra clave..." onkeydown="if(event.key==='Enter'){ this.blur(); Actions.filterExpenses(); }">
                     </div>
                 </div>
                 <div style="margin-top: 1rem; display: flex; gap: 0.5rem; flex-wrap: wrap;">
@@ -652,7 +654,13 @@ const Views = {
         const container = document.createElement('div');
         container.innerHTML = `
             <div class="page-header">
-                <h2>⚙️ Configuración</h2>
+                <h2>📁 Datos</h2>
+            </div>
+
+            <div class="card" style="margin-bottom: 1.5rem;">
+                <h3>🔒 Eliminar datos</h3>
+                <p style="color: var(--text-muted); margin-bottom: 1rem;">Elimina todos los datos guardados en la aplicación. Esta acción es irreversible.</p>
+                <button class="btn btn-danger" onclick="Actions.openDeleteDataModal()">🗑️ Eliminar todos los datos</button>
             </div>
 
             <div class="card" style="margin-bottom: 1.5rem;">
@@ -676,7 +684,7 @@ const Views = {
     // Generic Modal
     renderModal(title, contentHtml) {
         const existing = document.querySelector('.modal-overlay');
-        if (existing) existing.remove();
+        if (existing) this.closeModal(existing);
 
         const modal = document.createElement('div');
         modal.className = 'modal-overlay';
@@ -684,7 +692,7 @@ const Views = {
             <div class="modal-content">
                 <div class="modal-header">
                     <h3>${title}</h3>
-                    <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">×</button>
+                    <button class="modal-close" onclick="Views.closeModal()">×</button>
                 </div>
                 <div class="modal-body">
                     ${contentHtml}
@@ -693,9 +701,27 @@ const Views = {
         `;
         // Close on outside click
         modal.addEventListener('click', (e) => {
-            if (e.target === modal) modal.remove();
+            if (e.target === modal) this.closeModal();
         });
         document.body.appendChild(modal);
+    },
+
+    /**
+     * Cierra el modal con animación de salida
+     */
+    closeModal(modalElement) {
+        const modal = modalElement || document.querySelector('.modal-overlay');
+        if (!modal) return;
+        
+        // Añadir clases de animación de cierre
+        modal.classList.add('modal-closing');
+        const content = modal.querySelector('.modal-content');
+        if (content) content.classList.add('modal-content-closing');
+        
+        // Esperar a que termine la animación antes de eliminar
+        setTimeout(() => {
+            modal.remove();
+        }, 200); // Duración de la animación
     }
 };
 
@@ -706,7 +732,7 @@ const Actions = {
         const title = product ? 'Editar Agua' : 'Nuevo Agua';
         
         // Paleta de colores disponibles (más extensa)
-        const colors = ['#FFFFFF','#F8F9FA','#EAEAEA','#F1F2F6','#6C5CE7','#5A3FD9','#A29BFE','#6C63FF','#0984E3','#74B9FF','#74C0FC','#00CEC9','#00A8A8','#55EFC4','#00B894','#00A36C','#FD79A8','#E84393','#FF6B6B','#FF7675','#D63031','#FF6348','#FDCB6E','#FFEAA7','#E17055','#E67E22','#FF9F1C','#B2BEC3','#636E72','#2D3436','#1E272E','#FFE4E1'];
+        const colors = ['#FFFFFF','#6C5CE7','#5A3FD9','#A29BFE','#6C63FF','#0984E3','#74B9FF','#74C0FC','#00CEC9','#00A8A8','#55EFC4','#00B894','#00A36C','#FD79A8','#E84393','#FF6B6B','#FF7675','#D63031','#FF6348','#FDCB6E','#FFEAA7','#E17055','#E67E22','#FF9F1C','#B2BEC3','#636E72','#2D3436','#1E272E'];
         const selectedColor = product?.color || colors[0];
         
         // Obtener presentaciones predefinidas
@@ -734,13 +760,17 @@ const Actions = {
                             const selectedEntry = productPresentations.find(pp => pp.id === pres.id) || {};
                             const customPrice = selectedEntry.price || '';
                             return `
-                                <label class="presentation-item" style="display: flex; align-items: center; gap: 0.5rem; padding: 0.6rem; border: 2px solid ${isSelected ? 'var(--primary)' : '#e0e0e0'}; border-radius: 8px; cursor: pointer; background-color: ${isSelected ? 'rgba(108, 92, 231, 0.05)' : 'white'}; transition: all 0.2s;">
-                                    <input type="checkbox" name="presentation" value="${pres.id}" ${isSelected ? 'checked' : ''} onchange="Actions.updatePresentationSelection()">
-                                    <div style="flex:1;">
-                                        <strong>${pres.name}</strong>
-                                        <div style="font-size: 0.75rem; color: var(--text-muted);">${pres.liters}L</div>
+                                <label class="presentation-item ${isSelected ? 'selected' : ''}">
+                                    <div class="presentation-checkbox">
+                                        <input type="checkbox" name="presentation" value="${pres.id}" ${isSelected ? 'checked' : ''} onchange="Actions.updatePresentationSelection()">
                                     </div>
-                                    <input type="number" name="presentation_price_${pres.id}" step="0.01" placeholder="Precio" value="${customPrice}" onchange="Actions.updatePresentationSelection()" style="width:90px;" />
+                                    <div class="presentation-info">
+                                        <div class="presentation-name">${pres.name}</div>
+                                        <div class="presentation-liters">${pres.liters}L</div>
+                                    </div>
+                                    <div class="presentation-price-input">
+                                        <input type="number" name="presentation_price_${pres.id}" step="0.01" placeholder="Precio" value="${customPrice}" onchange="Actions.updatePresentationSelection()" class="price-field" />
+                                    </div>
                                 </label>
                             `;
                         }).join('')}
@@ -766,7 +796,7 @@ const Actions = {
                 </div>
                 
                 <div class="form-actions">
-                    <button type="button" class="btn" style="background: transparent; color: var(--text-muted); border: 1px solid #ccc" onclick="document.querySelector('.modal-overlay').remove()">Cancelar</button>
+                    <button type="button" class="btn" style="background: transparent; color: var(--text-muted); border: 1px solid #ccc" onclick="Views.closeModal()">Cancelar</button>
                     <button type="submit" class="btn btn-success">Guardar</button>
                 </div>
             </form>
@@ -881,7 +911,7 @@ const Actions = {
         }
 
         Storage.save();
-        document.querySelector('.modal-overlay').remove();
+        Views.closeModal();
         Router.navigate('inventory'); // Re-render
     },
 
@@ -1079,7 +1109,7 @@ const Actions = {
                         <input type="number" step="0.01" name="liters" placeholder="Litros" required style="width:110px;">
                     </div>
                     <div style="display:flex; gap:0.5rem; justify-content:flex-end;">
-                        <button class="btn" type="button" onclick="document.querySelector('.modal-overlay').remove()">Cerrar</button>
+                        <button class="btn" type="button" onclick="Views.closeModal()">Cerrar</button>
                         <button class="btn btn-success">Agregar</button>
                     </div>
                 </form>
@@ -1171,6 +1201,51 @@ const Actions = {
         }
     },
 
+    /**
+     * Abre un modal para confirmar la eliminación de todos los datos.
+     * El usuario debe escribir la palabra de confirmación "Ornitorinco".
+     */
+    openDeleteDataModal() {
+        const html = `
+            <p style="color: var(--text-muted);">Esta acción eliminará todos los productos, ventas, gastos y configuraciones guardadas localmente. Es irreversible.</p>
+            <p>Escribe la palabra <strong>Ornitorinco</strong> para confirmar:</p>
+            <input id="confirm-delete-input" type="text" placeholder="Palabra de confirmación" style="width: 100%; padding: 0.6rem; margin-bottom: 0.8rem;" />
+            <div style="display:flex; gap:0.5rem; justify-content: flex-end;">
+                <button class="btn" type="button" onclick="Views.closeModal()">Cancelar</button>
+                <button class="btn btn-danger" type="button" onclick="Actions.deleteAllData()">Eliminar</button>
+            </div>
+        `;
+        Views.renderModal('Eliminar todos los datos', html);
+    },
+
+    /**
+     * Elimina todos los datos guardados si la palabra de confirmación coincide.
+     */
+    deleteAllData() {
+        const input = document.getElementById('confirm-delete-input');
+        const val = input ? input.value.trim() : '';
+        if (val !== 'Ornitorinco') {
+            alert('La palabra de confirmación no coincide. Escribe Ornitorinco para confirmar.');
+            return;
+        }
+
+        if (!confirm('¿Estás seguro? Esta acción eliminará permanentemente todos los datos.')) return;
+
+        // Borrar datos del LocalStorage
+        try {
+            localStorage.removeItem(Storage.KEY);
+        } catch (e) {}
+
+        // Reiniciar AppState.data a estructura vacía (Storage.load se encargará de inicializar defaults)
+        AppState.data = { products: [], salesHistory: [], expenses: [], expenseCategories: [], presentations: [] };
+        Storage.save();
+        // Recargar datos y volver a la vista de inventario
+        Storage.load();
+        Views.closeModal();
+        alert('Todos los datos han sido eliminados.');
+        Router.navigate('inventory');
+    },
+
     // --- FILTERS & REPORTS ---
     filterSales() {
         const from = document.getElementById('sales-date-from').value;
@@ -1246,12 +1321,12 @@ const Actions = {
         let rows = [];
         let title = '';
         let dateRange = '';
+        let fileDateRange = new Date().toISOString().split('T')[0];
 
         if (type === 'sales') {
             title = 'Reporte de Ventas - Detallado por Producto';
             const from = document.getElementById('sales-date-from').value;
             const to = document.getElementById('sales-date-to').value;
-            dateRange = `Desde: ${from || 'Inicio'} - Hasta: ${to || 'Hoy'}`;
 
             // Re-apply filter logic using proper Date objects (incluye mismo día)
             let filtered = AppState.data.salesHistory || [];
@@ -1278,6 +1353,22 @@ const Actions = {
             }
 
             data = filtered;
+
+            // Determinar rango de fechas real del conjunto filtrado para mostrar fechas explícitas
+            let minDate = null, maxDate = null;
+            data.forEach(s => {
+                const d = new Date(s.date);
+                if (!minDate || d < minDate) minDate = d;
+                if (!maxDate || d > maxDate) maxDate = d;
+            });
+
+            const fromLabel = from || (minDate ? minDate.toLocaleDateString() : new Date().toLocaleDateString());
+            const toLabel = to || (maxDate ? maxDate.toLocaleDateString() : new Date().toLocaleDateString());
+            dateRange = `Desde: ${fromLabel} - Hasta: ${toLabel}`;
+            // Prepare ISO date range for filename
+            const fromISO = from || (minDate ? minDate.toISOString().split('T')[0] : new Date().toISOString().split('T')[0]);
+            const toISO = to || (maxDate ? maxDate.toISOString().split('T')[0] : new Date().toISOString().split('T')[0]);
+            fileDateRange = `${fromISO}_${toISO}`;
             
             // Crear desglose detallado por producto
             let productsData = {};
@@ -1327,17 +1418,51 @@ const Actions = {
             const from = document.getElementById('filter-date-from').value;
             const to = document.getElementById('filter-date-to').value;
             const keyword = document.getElementById('filter-keyword').value.toLowerCase();
-            dateRange = `Desde: ${from || 'Inicio'} - Hasta: ${to || 'Hoy'}`;
 
             let filtered = AppState.data.expenses || [];
-            if (from) filtered = filtered.filter(e => new Date(e.date) >= new Date(from).setHours(0, 0, 0, 0));
-            if (to) filtered = filtered.filter(e => new Date(e.date) <= new Date(to).setHours(23, 59, 59, 999));
+
+            // Validate range first
+            if (from && to) {
+                const fromDateCheck = new Date(from);
+                const toDateCheck = new Date(to);
+                if (toDateCheck < fromDateCheck) {
+                    alert('La fecha final no puede ser anterior a la fecha inicial.');
+                    return;
+                }
+            }
+
+            if (from) {
+                const fromDate = new Date(from);
+                fromDate.setHours(0, 0, 0, 0);
+                filtered = filtered.filter(e => new Date(e.date) >= fromDate);
+            }
+            if (to) {
+                const toDate = new Date(to);
+                toDate.setHours(23, 59, 59, 999);
+                filtered = filtered.filter(e => new Date(e.date) <= toDate);
+            }
             if (keyword) filtered = filtered.filter(e =>
                 (e.description && e.description.toLowerCase().includes(keyword)) ||
                 (AppState.data.expenseCategories.find(c => c.id == e.categoryId)?.name || '').toLowerCase().includes(keyword)
             );
 
             data = filtered;
+
+            // Determinar rango de fechas real del conjunto filtrado para mostrar fechas explícitas
+            let minDateE = null, maxDateE = null;
+            data.forEach(exp => {
+                const d = new Date(exp.date);
+                if (!minDateE || d < minDateE) minDateE = d;
+                if (!maxDateE || d > maxDateE) maxDateE = d;
+            });
+
+            const fromLabelE = from || (minDateE ? minDateE.toLocaleDateString() : new Date().toLocaleDateString());
+            const toLabelE = to || (maxDateE ? maxDateE.toLocaleDateString() : new Date().toLocaleDateString());
+            dateRange = `Desde: ${fromLabelE} - Hasta: ${toLabelE}`;
+            // Prepare ISO date range for filename
+            const fromISOE = from || (minDateE ? minDateE.toISOString().split('T')[0] : new Date().toISOString().split('T')[0]);
+            const toISOE = to || (maxDateE ? maxDateE.toISOString().split('T')[0] : new Date().toISOString().split('T')[0]);
+            fileDateRange = `${fromISOE}_${toISOE}`;
             headers = [['Fecha', 'Categoría', 'Descripción', 'Monto']];
             rows = data.map(exp => [
                 new Date(exp.date).toLocaleDateString(),
@@ -1373,7 +1498,7 @@ const Actions = {
                 alternateRowStyles: { fillColor: [244, 247, 246] }
             });
 
-            doc.save(`${title.replace(/ /g, '_')}_${new Date().toISOString().split('T')[0]}.pdf`);
+            doc.save(`${title.replace(/ /g, '_')}_${fileDateRange}.pdf`);
         } else if (format === 'excel') {
             if (!window.XLSX) { alert('Librería Excel no cargada. Verifica tu conexión.'); return; }
 
@@ -1382,7 +1507,7 @@ const Actions = {
             const ws = XLSX.utils.aoa_to_sheet(wsData);
 
             XLSX.utils.book_append_sheet(wb, ws, "Reporte");
-            XLSX.writeFile(wb, `${title.replace(/ /g, '_')}_${new Date().toISOString().split('T')[0]}.xlsx`);
+            XLSX.writeFile(wb, `${title.replace(/ /g, '_')}_${fileDateRange}.xlsx`);
         }
     }
 };
