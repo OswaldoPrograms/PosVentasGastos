@@ -728,6 +728,42 @@ textarea:focus {
     .grid { padding-bottom: 1rem; }
 }
 
+/* --- MODO HORIZONTAL EN MÓVILES (LANDSCAPE) --- */
+@media (max-width: 1024px) and (max-height: 600px) and (orientation: landscape) {
+    /* En modo horizontal, reducir altura del nav y permitir scroll horizontal */
+    #main-nav {
+        overflow-x: auto;
+        overflow-y: hidden;
+        padding: 0.3rem 0.5rem;
+        -webkit-overflow-scrolling: touch;
+    }
+    
+    .nav-links {
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        gap: 0.3rem;
+        min-width: min-content;
+    }
+    
+    .nav-links li {
+        padding: 0.4rem 0.6rem;
+        font-size: 0.65rem;
+        white-space: nowrap;
+        flex-shrink: 0;
+        min-width: 60px;
+    }
+    
+    .nav-links li .icon {
+        font-size: 1.2rem;
+    }
+    
+    /* Reducir padding del contenido principal */
+    #main-content {
+        padding: 1rem;
+        padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 90px);
+    }
+}
+
 /* --- MODALES/VENTANAS EMERGENTES --- */
 
 /**

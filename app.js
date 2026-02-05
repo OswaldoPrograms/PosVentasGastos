@@ -577,7 +577,7 @@ const Views = {
             </div>
             
             <!-- Espacio adicional para permitir scroll en móviles -->
-            <div style="height: 25vh; min-height: 150px;"></div>
+            <div style="height: 15vh; min-height: 80px;"></div>
         `;
         // Hacer que el fondo (contenedor de la vista) sea el que haga scroll, no la tarjeta
         container.classList.add('scrollable-view');
