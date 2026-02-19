@@ -1,37 +1,619 @@
 <!DOCTYPE html>
-<html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <meta httpEquiv="X-UA-Compatible" content="IE=edge" />
-    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
-    <title>POSTecolutla</title>
-    <!-- The `react-native-web` recommended style reset: https://necolas.github.io/react-native-web/docs/setup/#root-element -->
-    <style id="expo-reset">
-      /* These styles make the body full-height */
-      html,
-      body {
-        height: 100%;
-      }
-      /* These styles disable body scrolling if you are using <ScrollView> */
-      body {
-        overflow: hidden;
-      }
-      /* These styles make the root element full-height */
-      #root {
-        display: flex;
-        height: 100%;
-        flex: 1;
-      }
-    </style>
-  </head>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Generador Reporte STUCV</title>
+    <style>
+        :root {
+            --primary: #003366;
+            --accent: #e6b800;
+            --bg: #f4f4f9;
+        }
+        body {
+            font-family: Arial, sans-serif;
+            background-color: var(--bg);
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+        .card {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        }
+        .card h2 {
+            text-align: center;
+            color: var(--primary);
+            font-size: 1.1rem;
+            border-bottom: 2px solid var(--accent);
+            padding-bottom: 10px;
+            margin-top: 0;
+        }
+        .card-subtitle {
+            font-size: 0.75rem;
+            color: #888;
+            text-align: center;
+            margin-top: -8px;
+            margin-bottom: 14px;
+        }
+        .form-group { margin-bottom: 15px; }
+        label {
+            display: block;
+            font-weight: bold;
+            margin-bottom: 5px;
+            color: #333;
+            font-size: 0.9rem;
+        }
+        input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            font-size: 1rem;
+            box-sizing: border-box;
+        }
+        input:focus { border-color: var(--primary); outline: none; }
 
-  <body>
-    <!-- Use static rendering with Expo Router to support running without JavaScript. -->
-    <noscript>
-      You need to enable JavaScript to run this app.
-    </noscript>
-    <!-- The root element for your Expo app. -->
-    <div id="root"></div>
-  <script src="/_expo/static/js/web/entry-915dc9a1f482ec038088b211fa070e56.js" defer></script>
+        /* ── Hora de Regreso: flex 3/1 para 75%/25% sin desborde ── */
+        .input-with-btn {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            width: 100%;
+        }
+        .input-with-btn input {
+            flex: 3;
+            min-width: 0;
+        }
+        .btn-clock {
+            flex: 1;
+            min-width: 0;
+            height: 42px;
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1.1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.2s;
+            padding: 0;
+        }
+        .btn-clock:active { background-color: #002244; }
+
+        /* Input time invisible para disparar el picker nativo */
+        #reloj-oculto {
+            position: absolute;
+            opacity: 0;
+            pointer-events: none;
+            width: 0;
+            height: 0;
+        }
+
+        /* ── Buscador de Destino tipo Google ── */
+        .search-wrapper { position: relative; }
+        .search-wrapper input { width: 100%; box-sizing: border-box; }
+        .search-dropdown {
+            display: none;
+            position: absolute;
+            top: calc(100% + 2px);
+            left: 0; right: 0;
+            background: white;
+            border: 1px solid #ccc;
+            border-radius: 0 0 8px 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            z-index: 999;
+            max-height: 220px;
+            overflow-y: auto;
+        }
+        .search-dropdown.open { display: block; }
+        .dropdown-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 14px;
+            cursor: pointer;
+            font-size: 0.95rem;
+            color: #222;
+            border-bottom: 1px solid #f0f0f0;
+            transition: background 0.15s;
+        }
+        .dropdown-item:last-child { border-bottom: none; }
+        .dropdown-item:hover,
+        .dropdown-item.active { background-color: #f0f4ff; }
+        .dropdown-item .icon { font-size: 0.85rem; color: #999; flex-shrink: 0; }
+        .dropdown-item .text { flex: 1; }
+        .dropdown-item .text mark {
+            background: none;
+            color: var(--primary);
+            font-weight: bold;
+        }
+        .dropdown-item .btn-del {
+            background: none; border: none; color: #bbb;
+            cursor: pointer; font-size: 0.9rem; padding: 2px 4px;
+            border-radius: 3px; line-height: 1; flex-shrink: 0;
+        }
+        .dropdown-item .btn-del:hover { color: #cc0000; background: #fff0f0; }
+        .dropdown-empty {
+            padding: 12px 14px; color: #aaa;
+            font-size: 0.88rem; text-align: center;
+        }
+
+        /* ── Botones principales ── */
+        .btn-container {
+            display: flex; gap: 10px;
+            margin-top: 20px; flex-wrap: wrap;
+        }
+        button {
+            flex: 1; padding: 15px; font-size: 0.95rem;
+            border: none; border-radius: 5px; cursor: pointer;
+            font-weight: bold; transition: background 0.2s; min-width: 100px;
+        }
+        .btn-copy     { background-color: var(--primary); color: white; }
+        .btn-copy:active { background-color: #002244; }
+        .btn-reset    { background-color: #cc0000; color: white; }
+        .btn-whatsapp { background-color: #25D366; color: white; }
+        .btn-whatsapp:active { background-color: #1DA851; }
+
+        .preview {
+            background: #eee; padding: 15px; margin-top: 20px;
+            border-radius: 5px; font-family: monospace;
+            white-space: pre-wrap; font-size: 0.85rem;
+            display: none; border: 1px dashed #999;
+        }
+        .notification {
+            position: fixed; bottom: 20px; left: 50%;
+            transform: translateX(-50%);
+            background-color: #28a745; color: white;
+            padding: 10px 20px; border-radius: 20px;
+            display: none; box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            z-index: 1000;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+
+    <!-- ═══════════════════════════════ -->
+    <!--      TARJETA A: DATOS DEL VIAJE -->
+    <!-- ═══════════════════════════════ -->
+    <div class="card">
+        <h2>🗓️ DATOS DEL VIAJE</h2>
+        <p class="card-subtitle">Información del recorrido</p>
+
+        <div class="form-group">
+            <label>Fecha del Viaje:</label>
+            <input type="date" id="fecha">
+        </div>
+
+        <div class="form-group">
+            <label>Hora de Salida:</label>
+            <input type="time" id="hora" value="08:00">
+        </div>
+
+        <div class="form-group">
+            <label>Destino:</label>
+            <div class="search-wrapper" id="destino-wrapper">
+                <input type="text" id="destino"
+                       placeholder="Escribe para buscar..." autocomplete="off">
+                <div class="search-dropdown" id="destino-dropdown"></div>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label>Usuarios (Pasajeros):</label>
+            <input type="number" id="usuarios" value="3">
+        </div>
+
+        <div class="form-group">
+            <label>Hora de Regreso:</label>
+            <div class="input-with-btn">
+                <input type="text" id="regreso"
+                       value="Al terminar actividades"
+                       placeholder="Ej. Al terminar actividades">
+                <button class="btn-clock"
+                        onclick="abrirRelojRegreso()"
+                        title="Elegir hora">🕐</button>
+            </div>
+            <input type="time" id="reloj-oculto" value="17:00">
+        </div>
+    </div>
+
+    <!-- ══════════════════════════════════════ -->
+    <!--    TARJETA B: DATOS DEL CHOFER Y TAXI  -->
+    <!-- ══════════════════════════════════════ -->
+    <div class="card">
+        <h2>🚕 DATOS DEL CHOFER Y TAXI</h2>
+        <p class="card-subtitle">Información del vehículo y conductor</p>
+
+        <div class="form-group">
+            <label>Municipio (Salida):</label>
+            <input type="text" id="municipio" list="list-municipio"
+                   placeholder="Ej. Vega de Alatorre">
+            <datalist id="list-municipio">
+                <option value="Vega de Alatorre"></option>
+                <option value="Misantla"></option>
+                <option value="Nautla"></option>
+                <option value="Martínez de la Torre"></option>
+                <option value="Colipa"></option>
+                <option value="Juchique de Ferrer"></option>
+            </datalist>
+        </div>
+
+        <div class="form-group">
+            <label>Localidad:</label>
+            <input type="text" id="localidad" list="list-localidad"
+                   placeholder="Ej. Las Higueras">
+            <datalist id="list-localidad"></datalist>
+        </div>
+
+        <div class="form-group">
+            <label>Conductor:</label>
+            <input type="text" id="conductor" list="list-conductor"
+                   placeholder="Nombre completo">
+            <datalist id="list-conductor"></datalist>
+        </div>
+
+        <div class="form-group">
+            <label>Taxi No:</label>
+            <input type="number" id="taxi" list="list-taxi">
+            <datalist id="list-taxi"></datalist>
+        </div>
+
+        <div class="form-group">
+            <label>Placas:</label>
+            <input type="text" id="placas" list="list-placas">
+            <datalist id="list-placas"></datalist>
+        </div>
+
+        <div class="form-group">
+            <label>Marca:</label>
+            <input type="text" id="marca" list="list-marca" placeholder="Ej. Nissan">
+            <datalist id="list-marca"></datalist>
+        </div>
+
+        <div class="form-group">
+            <label>Tipo:</label>
+            <input type="text" id="tipo" list="list-tipo" placeholder="Ej. Tiida">
+            <datalist id="list-tipo"></datalist>
+        </div>
+
+        <div class="btn-container">
+            <button class="btn-reset"    onclick="limpiarFormulario()">BORRAR</button>
+            <button class="btn-copy"     onclick="copiarReporte()">COPIAR</button>
+            <button class="btn-whatsapp" onclick="enviarWhatsApp()">WHATSAPP</button>
+        </div>
+
+        <div id="preview-area" class="preview"></div>
+    </div>
+
+</div>
+
+<div id="notification" class="notification">¡Reporte Copiado!</div>
+
+<script>
+// ─── Campos normales ───
+const inputs = [
+    'fecha', 'hora', 'municipio', 'localidad',
+    'conductor', 'taxi', 'placas', 'marca', 'tipo', 'usuarios', 'regreso'
+];
+
+// ════════════════════════════════════════════════
+//   HORA DE REGRESO
+// ════════════════════════════════════════════════
+const regresoInput = document.getElementById('regreso');
+const relojOculto  = document.getElementById('reloj-oculto');
+
+function abrirRelojRegreso() {
+    relojOculto.showPicker ? relojOculto.showPicker() : relojOculto.click();
+}
+
+relojOculto.addEventListener('change', function () {
+    if (!this.value) return;
+    const [hh, mm] = this.value.split(':');
+    const h    = parseInt(hh);
+    const ampm = h >= 12 ? 'pm' : 'am';
+    const h12  = h % 12 || 12;
+    const horaTexto = `${h12}:${mm} ${ampm}`;
+    regresoInput.value = horaTexto;
+    localStorage.setItem('stucv_regreso', horaTexto);
+    regresoInput.focus();
+});
+
+regresoInput.addEventListener('input', function () {
+    localStorage.setItem('stucv_regreso', this.value);
+});
+
+// ════════════════════════════════════════════════
+//   BUSCADOR DE DESTINO TIPO GOOGLE
+// ════════════════════════════════════════════════
+const DESTINOS_BASE = ['MISANTLA', 'XALAPA', 'VERACRUZ', 'CARDEL'];
+const DESTINO_KEY   = 'busqueda_destino';
+const MAX_HISTORIAL = 20;
+
+const destinoInput    = document.getElementById('destino');
+const destinoDropdown = document.getElementById('destino-dropdown');
+let activeIndex = -1;
+
+function getHistorialDestino() {
+    return JSON.parse(localStorage.getItem(DESTINO_KEY)) || [];
+}
+function saveHistorialDestino(h) {
+    localStorage.setItem(DESTINO_KEY, JSON.stringify(h));
+}
+function guardarDestino(valor) {
+    if (!valor || !valor.trim()) return;
+    const val = valor.trim().toUpperCase();
+    let h = getHistorialDestino().filter(i => i.toUpperCase() !== val);
+    h.unshift(val);
+    if (h.length > MAX_HISTORIAL) h = h.slice(0, MAX_HISTORIAL);
+    saveHistorialDestino(h);
+}
+function eliminarDestino(valor, e) {
+    e.stopPropagation();
+    let h = getHistorialDestino().filter(i => i.toUpperCase() !== valor.toUpperCase());
+    saveHistorialDestino(h);
+    renderDropdown(destinoInput.value);
+}
+function resaltar(texto, query) {
+    if (!query) return texto;
+    const idx = texto.toUpperCase().indexOf(query.toUpperCase());
+    if (idx === -1) return texto;
+    return texto.slice(0, idx)
+        + '<mark>' + texto.slice(idx, idx + query.length) + '</mark>'
+        + texto.slice(idx + query.length);
+}
+function renderDropdown(query) {
+    const historial = getHistorialDestino();
+    const q = (query || '').trim().toUpperCase();
+    const histFiltrado   = q ? historial.filter(i => i.includes(q)) : historial;
+    const basesFiltradas = DESTINOS_BASE.filter(b =>
+        (!q || b.includes(q)) &&
+        !historial.some(h => h.toUpperCase() === b.toUpperCase())
+    );
+    const resultados = [...histFiltrado, ...basesFiltradas];
+
+    activeIndex = -1;
+    destinoDropdown.innerHTML = '';
+
+    if (!resultados.length) {
+        destinoDropdown.innerHTML = q
+            ? `<div class="dropdown-empty">Presiona Enter para guardar "<strong>${q}</strong>"</div>`
+            : `<div class="dropdown-empty">Sin resultados</div>`;
+        destinoDropdown.classList.add('open');
+        return;
+    }
+    resultados.forEach(valor => {
+        const esHistorial = historial.some(h => h.toUpperCase() === valor.toUpperCase());
+        const item = document.createElement('div');
+        item.className = 'dropdown-item';
+        item.innerHTML = `
+            <span class="icon">${esHistorial ? '🕐' : '📍'}</span>
+            <span class="text">${resaltar(valor, query)}</span>
+            ${esHistorial
+                ? `<button class="btn-del"
+                       onmousedown="eliminarDestino('${valor}', event)"
+                       title="Eliminar">✕</button>`
+                : ''}`;
+        item.addEventListener('mousedown', () => seleccionarDestino(valor));
+        destinoDropdown.appendChild(item);
+    });
+    destinoDropdown.classList.add('open');
+}
+function seleccionarDestino(valor) {
+    destinoInput.value = valor;
+    localStorage.setItem('stucv_destino', valor);
+    cerrarDropdown();
+}
+function cerrarDropdown() {
+    destinoDropdown.classList.remove('open');
+    activeIndex = -1;
+}
+
+destinoInput.addEventListener('input', function () {
+    localStorage.setItem('stucv_destino', this.value);
+    renderDropdown(this.value);
+});
+destinoInput.addEventListener('focus', function () { renderDropdown(this.value); });
+destinoInput.addEventListener('blur',  function () { setTimeout(cerrarDropdown, 150); });
+destinoInput.addEventListener('keydown', function (e) {
+    const items = destinoDropdown.querySelectorAll('.dropdown-item');
+    if (!items.length) {
+        if (e.key === 'Enter' && this.value.trim()) {
+            guardarDestino(this.value.trim()); cerrarDropdown();
+        }
+        return;
+    }
+    if      (e.key === 'ArrowDown') { e.preventDefault(); activeIndex = Math.min(activeIndex + 1, items.length - 1); }
+    else if (e.key === 'ArrowUp')   { e.preventDefault(); activeIndex = Math.max(activeIndex - 1, -1); }
+    else if (e.key === 'Enter') {
+        e.preventDefault();
+        if (activeIndex >= 0) seleccionarDestino(items[activeIndex].querySelector('.text').textContent.trim());
+        else if (this.value.trim()) { guardarDestino(this.value.trim()); cerrarDropdown(); }
+        return;
+    } else if (e.key === 'Escape') { cerrarDropdown(); return; }
+    items.forEach((it, i) => it.classList.toggle('active', i === activeIndex));
+    if (activeIndex >= 0) items[activeIndex].scrollIntoView({ block: 'nearest' });
+});
+document.addEventListener('click', function (e) {
+    if (!document.getElementById('destino-wrapper').contains(e.target)) cerrarDropdown();
+});
+
+// ════════════════════════════════════════════════
+//   INICIALIZACIÓN
+// ════════════════════════════════════════════════
+window.onload = function () {
+    const today = new Date().toISOString().split('T')[0];
+    inputs.forEach(id => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        if (id === 'fecha') {
+            el.value = today;
+        } else {
+            const saved = localStorage.getItem('stucv_' + id);
+            if (saved) el.value = saved;
+        }
+        cargarHistorial(id);
+    });
+    const savedDestino = localStorage.getItem('stucv_destino');
+    if (savedDestino) destinoInput.value = savedDestino;
+};
+
+inputs.forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.addEventListener('input', function () {
+        if (id !== 'fecha') localStorage.setItem('stucv_' + id, this.value);
+    });
+});
+
+// ════════════════════════════════════════════════
+//   HISTORIAL GENÉRICO
+// ════════════════════════════════════════════════
+function cargarHistorial(id) {
+    const datalist = document.getElementById('list-' + id);
+    if (!datalist) return;
+    const h = JSON.parse(localStorage.getItem('historial_' + id)) || [];
+    const existentes = Array.from(datalist.options).map(o => o.value);
+    const todos = [...new Set([...existentes, ...h])];
+    datalist.innerHTML = '';
+    todos.forEach(v => {
+        const opt = document.createElement('option');
+        opt.value = v; datalist.appendChild(opt);
+    });
+}
+function guardarHistorial(id, valor) {
+    if (!valor || !valor.trim()) return;
+    const key = 'historial_' + id;
+    let h = JSON.parse(localStorage.getItem(key)) || [];
+    if (!h.some(i => i.toLowerCase() === valor.toLowerCase())) {
+        h.push(valor);
+        localStorage.setItem(key, JSON.stringify(h));
+        cargarHistorial(id);
+    }
+}
+
+// ════════════════════════════════════════════════
+//   FORMATO FECHA Y HORA
+// ════════════════════════════════════════════════
+function formatearFecha(fechaStr) {
+    if (!fechaStr) return "PENDIENTE";
+    const meses = ["Enero","Febrero","Marzo","Abril","Mayo","Junio",
+                   "Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
+    const [year, month, day] = fechaStr.split('-');
+    return `${day} / ${meses[parseInt(month) - 1]} / ${year}`;
+}
+function formatearHora(horaStr) {
+    if (!horaStr) return "PENDIENTE";
+    if (!/^\d{1,2}:\d{2}$/.test(horaStr)) return horaStr;
+    const [hour, minute] = horaStr.split(':');
+    const h    = parseInt(hour);
+    const ampm = h >= 12 ? 'pm' : 'am';
+    const h12  = h % 12 || 12;
+    return `${h12}:${minute} ${ampm}`;
+}
+
+// ════════════════════════════════════════════════
+//   GENERAR REPORTE
+// ════════════════════════════════════════════════
+function obtenerTextoReporte() {
+    const allIds = [...inputs, 'destino'];
+    const v = {};
+    allIds.forEach(id => {
+        const el = document.getElementById(id);
+        v[id] = el ? el.value : '';
+    });
+
+    ['municipio','localidad','conductor','taxi','placas','marca','tipo']
+        .forEach(id => guardarHistorial(id, v[id]));
+    guardarDestino(v.destino);
+
+    return `""SINDICATO DE TRABAJADORES UNIDOS DE LA COSTA DE VERACRUZ 
+STUCV""
+
+DE LA MANERA MAS ATENTA SOLICITO EL APOYO PARA UN VIAJE TURISTICO POR FAVOR .
+
+FECHA :   ${formatearFecha(v.fecha)} 
+HORA DE SALIDA : ${formatearHora(v.hora)} 
+DESTINO : ${v.destino.toUpperCase()} 
+CONDUCTOR : ${v.conductor} 
+TAXI No : ${v.taxi} 
+MUNICIPIO : ${v.municipio} 
+LOCALIDAD : ${v.localidad}
+PLACAS : ${v.placas.toUpperCase()} 
+MARCA : ${v.marca} 
+TIPO :  ${v.tipo} 
+USUARIOS : ${v.usuarios} 
+HORA DE REGRESO : ${v.regreso} 
+
+GRACIAS  POR LA COMPRESION , EXCELENTE DIA ...`;
+}
+
+// ════════════════════════════════════════════════
+//   COPIAR / WHATSAPP / LIMPIAR
+// ════════════════════════════════════════════════
+function copiarAlPortapapeles(texto) {
+    if (navigator.clipboard && window.isSecureContext)
+        return navigator.clipboard.writeText(texto);
+    return new Promise((resolve, reject) => {
+        const ta = document.createElement("textarea");
+        ta.value = texto;
+        Object.assign(ta.style, {
+            position:'fixed', top:'0', left:'0', width:'2em', height:'2em',
+            padding:'0', border:'none', outline:'none', background:'transparent'
+        });
+        document.body.appendChild(ta);
+        ta.focus(); ta.select();
+        try { document.execCommand('copy') ? resolve() : reject(); }
+        catch(e) { reject(e); }
+        document.body.removeChild(ta);
+    });
+}
+function copiarReporte() {
+    const texto = obtenerTextoReporte();
+    copiarAlPortapapeles(texto)
+        .then(() => {
+            mostrarNotificacion();
+            document.getElementById('preview-area').style.display = 'none';
+        })
+        .catch(() => {
+            const p = document.getElementById('preview-area');
+            p.textContent = texto; p.style.display = 'block';
+            alert("Tu dispositivo bloqueó el copiado. Mantén presionado el texto gris para copiarlo.");
+        });
+}
+function enviarWhatsApp() {
+    const texto = obtenerTextoReporte();
+    window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(texto)}`, '_blank');
+}
+function mostrarNotificacion() {
+    const n = document.getElementById('notification');
+    n.style.display = 'block';
+    setTimeout(() => { n.style.display = 'none'; }, 3000);
+}
+function limpiarFormulario() {
+    if (confirm("¿Seguro que quieres borrar los datos del viaje? (Se conservarán tus datos de Taxi y Conductor)")) {
+        destinoInput.value = '';
+        localStorage.removeItem('stucv_destino');
+        document.getElementById('localidad').value = '';
+        localStorage.removeItem('stucv_localidad');
+        regresoInput.value = 'Al terminar actividades';
+        localStorage.setItem('stucv_regreso', 'Al terminar actividades');
+        document.getElementById('usuarios').value = '3';
+        document.getElementById('fecha').value = new Date().toISOString().split('T')[0];
+    }
+}
+</script>
 </body>
 </html>
