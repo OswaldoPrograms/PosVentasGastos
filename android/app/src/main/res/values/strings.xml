@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Reporte STUCV</string>
+    <string name="title_activity_main">Reporte STUCV</string>
+    <string name="package_name">com.stucv.reporteviaje</string>
+    <string name="custom_url_scheme">com.stucv.reporteviaje</string>
+</resources>
