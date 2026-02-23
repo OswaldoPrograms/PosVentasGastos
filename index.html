@@ -3,617 +3,939 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Generador Reporte STUCV</title>
+    <title>ContaApp Pro Mobile</title>
     <style>
         :root {
-            --primary: #003366;
-            --accent: #e6b800;
-            --bg: #f4f4f9;
+            --primary: #4361ee;
+            --success: #10b981;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+            --info: #3b82f6;
+            --bg: #f8f9fa;
+            --card: #ffffff;
+            --text: #2b2d42;
         }
+
         body {
-            font-family: Arial, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
             background-color: var(--bg);
+            color: var(--text);
             margin: 0;
-            padding: 20px;
+            padding-bottom: 80px;
         }
-        .container {
-            max-width: 600px;
-            margin: 0 auto;
-            display: flex;
-            flex-direction: column;
-            gap: 16px;
-        }
-        .card {
-            background: white;
-            padding: 20px;
-            border-radius: 10px;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
-        }
-        .card h2 {
+
+        header {
+            background: var(--primary);
+            color: white;
+            padding: 15px;
             text-align: center;
-            color: var(--primary);
-            font-size: 1.1rem;
-            border-bottom: 2px solid var(--accent);
-            padding-bottom: 10px;
-            margin-top: 0;
-        }
-        .card-subtitle {
-            font-size: 0.75rem;
-            color: #888;
-            text-align: center;
-            margin-top: -8px;
-            margin-bottom: 14px;
-        }
-        .form-group { margin-bottom: 15px; }
-        label {
-            display: block;
             font-weight: bold;
-            margin-bottom: 5px;
-            color: #333;
-            font-size: 0.9rem;
+            position: sticky;
+            top: 0;
+            z-index: 100;
         }
-        input {
+
+        /* ESTADO DE CONEXIÓN */
+        #sync-status {
+            font-size: 0.65rem;
+            padding: 4px 10px;
+            background: rgba(0,0,0,0.2);
+            border-radius: 10px;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            margin-top: 4px;
+        }
+        #sync-dot {
+            width: 8px; height: 8px; border-radius: 50%; background: #fbbf24;
+            animation: pulse 1.5s infinite;
+        }
+        #sync-dot.online { background: #34d399; animation: none; }
+        #sync-dot.offline { background: #f87171; animation: none; }
+        @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+        .window { display: none; padding: 15px; animation: fadeIn 0.2s ease; }
+        .window.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        .card {
+            background: var(--card);
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+            margin-bottom: 20px;
+        }
+
+        h2, h3 { margin-top: 0; color: var(--primary); }
+        h2 { font-size: 1.1rem; display: flex; justify-content: space-between; }
+        h3 { font-size: 1rem; border-bottom: 1px solid #e2e8f0; padding-bottom: 8px; margin-bottom: 10px; display: flex; justify-content: space-between;}
+        
+        .edit-badge { background: var(--warning); color: white; padding: 2px 8px; border-radius: 10px; font-size: 0.7rem; }
+
+        .form-group { margin-bottom: 12px; }
+        label { display: block; font-size: 0.8rem; margin-bottom: 4px; font-weight: 600; color: #64748b; }
+        
+        input, select {
             width: 100%;
-            padding: 10px;
-            border: 1px solid #ccc;
-            border-radius: 5px;
+            padding: 12px;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
             font-size: 1rem;
             box-sizing: border-box;
-        }
-        input:focus { border-color: var(--primary); outline: none; }
-
-        /* ── Hora de Regreso: flex 3/1 para 75%/25% sin desborde ── */
-        .input-with-btn {
-            display: flex;
-            gap: 8px;
-            align-items: center;
-            width: 100%;
-        }
-        .input-with-btn input {
-            flex: 3;
-            min-width: 0;
-        }
-        .btn-clock {
-            flex: 1;
-            min-width: 0;
-            height: 42px;
-            background-color: var(--primary);
-            color: white;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            font-size: 1.1rem;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: background 0.2s;
-            padding: 0;
-        }
-        .btn-clock:active { background-color: #002244; }
-
-        /* Input time invisible para disparar el picker nativo */
-        #reloj-oculto {
-            position: absolute;
-            opacity: 0;
-            pointer-events: none;
-            width: 0;
-            height: 0;
+            background: #fff;
         }
 
-        /* ── Buscador de Destino tipo Google ── */
-        .search-wrapper { position: relative; }
-        .search-wrapper input { width: 100%; box-sizing: border-box; }
-        .search-dropdown {
-            display: none;
-            position: absolute;
-            top: calc(100% + 2px);
-            left: 0; right: 0;
-            background: white;
-            border: 1px solid #ccc;
-            border-radius: 0 0 8px 8px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-            z-index: 999;
-            max-height: 220px;
-            overflow-y: auto;
-        }
-        .search-dropdown.open { display: block; }
-        .dropdown-item {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            padding: 10px 14px;
-            cursor: pointer;
-            font-size: 0.95rem;
-            color: #222;
-            border-bottom: 1px solid #f0f0f0;
-            transition: background 0.15s;
-        }
-        .dropdown-item:last-child { border-bottom: none; }
-        .dropdown-item:hover,
-        .dropdown-item.active { background-color: #f0f4ff; }
-        .dropdown-item .icon { font-size: 0.85rem; color: #999; flex-shrink: 0; }
-        .dropdown-item .text { flex: 1; }
-        .dropdown-item .text mark {
-            background: none;
-            color: var(--primary);
-            font-weight: bold;
-        }
-        .dropdown-item .btn-del {
-            background: none; border: none; color: #bbb;
-            cursor: pointer; font-size: 0.9rem; padding: 2px 4px;
-            border-radius: 3px; line-height: 1; flex-shrink: 0;
-        }
-        .dropdown-item .btn-del:hover { color: #cc0000; background: #fff0f0; }
-        .dropdown-empty {
-            padding: 12px 14px; color: #aaa;
-            font-size: 0.88rem; text-align: center;
-        }
+        .suggested { font-size: 0.75rem; color: var(--success); margin-top: 4px; font-weight: bold; }
 
-        /* ── Botones principales ── */
-        .btn-container {
-            display: flex; gap: 10px;
-            margin-top: 20px; flex-wrap: wrap;
-        }
-        button {
-            flex: 1; padding: 15px; font-size: 0.95rem;
-            border: none; border-radius: 5px; cursor: pointer;
-            font-weight: bold; transition: background 0.2s; min-width: 100px;
-        }
-        .btn-copy     { background-color: var(--primary); color: white; }
-        .btn-copy:active { background-color: #002244; }
-        .btn-reset    { background-color: #cc0000; color: white; }
-        .btn-whatsapp { background-color: #25D366; color: white; }
-        .btn-whatsapp:active { background-color: #1DA851; }
+        button { border: none; border-radius: 8px; padding: 12px; font-weight: 600; cursor: pointer; transition: 0.2s; width: 100%; margin-bottom: 5px; }
+        .btn-main { background: var(--primary); color: white; }
+        .btn-add { background: var(--text); color: white; }
+        .btn-cancel { background: #e2e8f0; color: #64748b; margin-top: 8px; }
+        .btn-calc { background: white; color: #166534; border: 1px solid #86efac; padding: 10px; font-size: 0.75rem; margin: 0; flex: 1; }
+        .btn-excel { background: #10b981; color: white; }
+        .btn-backup { background: var(--info); color: white; }
+        .btn-restore { background: #6366f1; color: white; }
+        .btn-clean { background: var(--danger); color: white; }
+        
+        .table-container { overflow-x: auto; background: white; border-radius: 10px; border: 1px solid #e2e8f0; }
+        table { width: 100%; border-collapse: collapse; font-size: 0.75rem; min-width: 100%; }
+        th { background: #f8fafc; padding: 12px; border-bottom: 2px solid #e2e8f0; text-align: left; }
+        td { padding: 10px; border-bottom: 1px solid #f1f5f9; }
+        
+        .action-btns { display: flex; gap: 5px; justify-content: center; }
+        .btn-icon { padding: 5px; font-size: 0.9rem; border-radius: 4px; min-width: 30px; width: auto; margin: 0; }
+        .btn-edit { background: #fef3c7; color: #d97706; }
+        .btn-del { background: #fee2e2; color: #dc2626; }
 
-        .preview {
-            background: #eee; padding: 15px; margin-top: 20px;
-            border-radius: 5px; font-family: monospace;
-            white-space: pre-wrap; font-size: 0.85rem;
-            display: none; border: 1px dashed #999;
+        .tab-bar {
+            position: fixed; bottom: 0; width: 100%; background: white;
+            display: flex; justify-content: space-around; padding: 10px 0;
+            box-shadow: 0 -2px 10px rgba(0,0,0,0.05); z-index: 100;
         }
-        .notification {
-            position: fixed; bottom: 20px; left: 50%;
-            transform: translateX(-50%);
-            background-color: #28a745; color: white;
-            padding: 10px 20px; border-radius: 20px;
-            display: none; box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-            z-index: 1000;
+        .tab-item { display: flex; flex-direction: column; align-items: center; font-size: 0.65rem; color: #94a3b8; cursor: pointer; flex: 1; text-align: center;}
+        .tab-item.active { color: var(--primary); }
+        .tab-item span:first-child { font-size: 1.2rem; margin-bottom: 2px;}
+        
+        .check-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; background: #f8fafc; padding: 10px; border-radius: 8px; margin-bottom: 10px;}
+
+        #success-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 2000;
+            display: flex; justify-content: center; align-items: center; opacity: 0; transition: opacity 0.1s ease; 
         }
+        #success-overlay.visible { opacity: 1; }
+        .success-icon {
+            font-size: 4rem; color: var(--success); background: white; border-radius: 50%; width: 100px; height: 100px;
+            display: flex; justify-content: center; align-items: center; box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+            transform: scale(0.5); transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275); border: 4px solid #ecfdf5;
+        }
+        #success-overlay.visible .success-icon { transform: scale(1); }
+
+        /* OVERLAY DE CARGA */
+        #loading-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(67,97,238,0.92);
+            z-index: 9999; display: flex; flex-direction: column; justify-content: center; align-items: center; color: white;
+        }
+        #loading-overlay.hidden { display: none; }
+        .spinner {
+            width: 48px; height: 48px; border: 5px solid rgba(255,255,255,0.3);
+            border-top-color: white; border-radius: 50%;
+            animation: spin 0.8s linear infinite; margin-bottom: 16px;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        .quick-option { background-color: #eff6ff; border: 1px solid #bfdbfe; padding: 10px; border-radius: 8px; margin-bottom: 15px; }
+        .quick-label { display: flex; align-items: center; gap: 8px; color: #1e40af; font-weight: bold; cursor: pointer; }
+        .quick-desc { font-size: 0.7rem; color: #60a5fa; margin: 4px 0 0 24px; }
+        
+        .totals-ok { color: var(--success); }
+        .totals-err { color: var(--danger); }
+        
+        .iva-box { background: #f0fdf4; padding: 12px; border-radius: 8px; border: 1px dashed #22c55e; margin-bottom: 12px; }
+        .iva-box label { color: #166534; }
+        
+        .iva-badge { background: #ecfdf5; color: #059669; padding: 2px 6px; border-radius: 4px; font-size: 0.65rem; border: 1px solid #a7f3d0; margin-left: 5px; }
     </style>
 </head>
 <body>
 
-<div class="container">
+    <!-- Overlay de carga inicial -->
+    <div id="loading-overlay">
+        <div class="spinner"></div>
+        <p style="font-size: 1rem; font-weight: bold; margin: 0;">Conectando con Firebase...</p>
+        <p style="font-size: 0.75rem; opacity: 0.7; margin-top: 6px;">Cargando datos en tiempo real</p>
+    </div>
 
-    <!-- ═══════════════════════════════ -->
-    <!--      TARJETA A: DATOS DEL VIAJE -->
-    <!-- ═══════════════════════════════ -->
-    <div class="card">
-        <h2>🗓️ DATOS DEL VIAJE</h2>
-        <p class="card-subtitle">Información del recorrido</p>
-
-        <div class="form-group">
-            <label>Fecha del Viaje:</label>
-            <input type="date" id="fecha">
+    <header id="app-title">
+        CONTABILIDAD MÓVIL
+        <div id="sync-status">
+            <div id="sync-dot"></div>
+            <span id="sync-label">Conectando...</span>
         </div>
+    </header>
 
-        <div class="form-group">
-            <label>Hora de Salida:</label>
-            <input type="time" id="hora" value="08:00">
-        </div>
-
-        <div class="form-group">
-            <label>Destino:</label>
-            <div class="search-wrapper" id="destino-wrapper">
-                <input type="text" id="destino"
-                       placeholder="Escribe para buscar..." autocomplete="off">
-                <div class="search-dropdown" id="destino-dropdown"></div>
+    <div id="win-rubros" class="window active">
+        <div class="card">
+            <h2>1. Rubro <span id="label-edit-r" class="edit-badge" style="display:none">Editando</span></h2>
+            <div class="form-group"><label>Código (2 dígitos):</label><input type="text" id="r_cod"><div id="sug_r" class="suggested"></div></div>
+            <div class="form-group"><label>Nombre:</label><input type="text" id="r_nom"></div>
+            <label>EEFF:</label>
+            <div class="check-grid">
+                <label><input type="checkbox" class="ef-check" value="A"> A: Balance</label>
+                <label><input type="checkbox" class="ef-check" value="B"> B: Resultados</label>
+                <label><input type="checkbox" class="ef-check" value="C"> C: Flujo</label>
+                <label><input type="checkbox" class="ef-check" value="D"> D: Cambio Cc</label>
             </div>
-        </div>
-
-        <div class="form-group">
-            <label>Usuarios (Pasajeros):</label>
-            <input type="number" id="usuarios" value="3">
-        </div>
-
-        <div class="form-group">
-            <label>Hora de Regreso:</label>
-            <div class="input-with-btn">
-                <input type="text" id="regreso"
-                       value="Al terminar actividades"
-                       placeholder="Ej. Al terminar actividades">
-                <button class="btn-clock"
-                        onclick="abrirRelojRegreso()"
-                        title="Elegir hora">🕐</button>
-            </div>
-            <input type="time" id="reloj-oculto" value="17:00">
+            <button class="btn-main" style="margin-top:15px" onclick="guardarRubro()">Guardar</button>
+            <button id="btn-cancel-r" class="btn-cancel" style="display:none" onclick="cancelarEdicion()">Cancelar</button>
         </div>
     </div>
 
-    <!-- ══════════════════════════════════════ -->
-    <!--    TARJETA B: DATOS DEL CHOFER Y TAXI  -->
-    <!-- ══════════════════════════════════════ -->
-    <div class="card">
-        <h2>🚕 DATOS DEL CHOFER Y TAXI</h2>
-        <p class="card-subtitle">Información del vehículo y conductor</p>
-
-        <div class="form-group">
-            <label>Municipio (Salida):</label>
-            <input type="text" id="municipio" list="list-municipio"
-                   placeholder="Ej. Vega de Alatorre">
-            <datalist id="list-municipio">
-                <option value="Vega de Alatorre"></option>
-                <option value="Misantla"></option>
-                <option value="Nautla"></option>
-                <option value="Martínez de la Torre"></option>
-                <option value="Colipa"></option>
-                <option value="Juchique de Ferrer"></option>
-            </datalist>
+    <div id="win-cuentas" class="window">
+        <div class="card">
+            <h2>2. Cuenta <span id="label-edit-c" class="edit-badge" style="display:none">Editando</span></h2>
+            <div class="quick-option">
+                <label class="quick-label"><input type="checkbox" id="c_auto_sub" style="width:auto; margin:0"> ⚡ Subcuenta Rápida</label>
+                <p class="quick-desc">Crea automáticamente la subcuenta "001" con el mismo nombre.</p>
+            </div>
+            <div class="form-group"><label>Rubro Padre:</label><select id="c_padre" onchange="sugerirCta()"></select></div>
+            <div class="form-group"><label>Código (3 dígitos - Sufijo):</label><input type="text" id="c_cod_suf"><div id="sug_c" class="suggested"></div></div>
+            <div class="form-group"><label>Nombre:</label><input type="text" id="c_nom"></div>
+            <div class="form-group"><label>Naturaleza:</label><select id="c_nat"><option value="Deudora">Deudora</option><option value="Acreedora">Acreedora</option></select></div>
+            <button class="btn-main" onclick="guardarCuenta()">Guardar</button>
+            <button id="btn-cancel-c" class="btn-cancel" style="display:none" onclick="cancelarEdicion()">Cancelar</button>
         </div>
-
-        <div class="form-group">
-            <label>Localidad:</label>
-            <input type="text" id="localidad" list="list-localidad"
-                   placeholder="Ej. Las Higueras">
-            <datalist id="list-localidad"></datalist>
-        </div>
-
-        <div class="form-group">
-            <label>Conductor:</label>
-            <input type="text" id="conductor" list="list-conductor"
-                   placeholder="Nombre completo">
-            <datalist id="list-conductor"></datalist>
-        </div>
-
-        <div class="form-group">
-            <label>Taxi No:</label>
-            <input type="number" id="taxi" list="list-taxi">
-            <datalist id="list-taxi"></datalist>
-        </div>
-
-        <div class="form-group">
-            <label>Placas:</label>
-            <input type="text" id="placas" list="list-placas">
-            <datalist id="list-placas"></datalist>
-        </div>
-
-        <div class="form-group">
-            <label>Marca:</label>
-            <input type="text" id="marca" list="list-marca" placeholder="Ej. Nissan">
-            <datalist id="list-marca"></datalist>
-        </div>
-
-        <div class="form-group">
-            <label>Tipo:</label>
-            <input type="text" id="tipo" list="list-tipo" placeholder="Ej. Tiida">
-            <datalist id="list-tipo"></datalist>
-        </div>
-
-        <div class="btn-container">
-            <button class="btn-reset"    onclick="limpiarFormulario()">BORRAR</button>
-            <button class="btn-copy"     onclick="copiarReporte()">COPIAR</button>
-            <button class="btn-whatsapp" onclick="enviarWhatsApp()">WHATSAPP</button>
-        </div>
-
-        <div id="preview-area" class="preview"></div>
     </div>
 
-</div>
+    <div id="win-subs" class="window">
+        <div class="card">
+            <h2>3. Subcuenta <span id="label-edit-s" class="edit-badge" style="display:none">Editando</span></h2>
+            <div class="form-group"><label>Cuenta Padre:</label><select id="s_padre" onchange="sugerirSub()"></select></div>
+            <div class="form-group"><label>Código (3 dígitos - Sufijo):</label><input type="text" id="s_cod_suf"><div id="sug_s" class="suggested"></div></div>
+            <div class="form-group"><label>Nombre:</label><input type="text" id="s_nom"></div>
+            
+            <div class="check-grid">
+                <label><input type="checkbox" id="s_pyg"> PyG</label>
+                <label><input type="checkbox" id="s_inv"> Inv</label>
+            </div>
+            <div class="check-grid" style="grid-template-columns: 1fr; background: #ecfdf5; border: 1px dashed #10b981; margin-top: -5px;">
+                <label style="color:#047857; font-weight:bold;"><input type="checkbox" id="s_is_iva"> 💰 Es cuenta de IVA</label>
+            </div>
 
-<div id="notification" class="notification">¡Reporte Copiado!</div>
+            <button class="btn-main" style="margin-top:15px" onclick="guardarSubcuenta()">Guardar</button>
+            <button id="btn-cancel-s" class="btn-cancel" style="display:none" onclick="cancelarEdicion()">Cancelar</button>
+        </div>
+    </div>
 
-<script>
-// ─── Campos normales ───
-const inputs = [
-    'fecha', 'hora', 'municipio', 'localidad',
-    'conductor', 'taxi', 'placas', 'marca', 'tipo', 'usuarios', 'regreso'
-];
+    <div id="win-asientos" class="window">
+        <div class="card">
+            <h2>4. Captura de Asiento <span id="label-edit-a" class="edit-badge" style="display:none">Editando</span></h2>
+            <div class="check-grid" style="padding:0; background:transparent;">
+                <div class="form-group"><label>No. Asiento:</label><input type="number" id="a_no"></div>
+                <div class="form-group"><label>Fecha:</label><input type="date" id="a_fecha"></div>
+            </div>
+            <div class="form-group"><label>Concepto:</label><input type="text" id="a_concepto" placeholder="Ej. Ventas del día"></div>
+            <div class="form-group">
+                <label>Tipo:</label>
+                <select id="a_tipo"><option value="1. Normal">1. Normal</option><option value="2. Ajuste">2. Ajuste</option></select>
+            </div>
+        </div>
 
-// ════════════════════════════════════════════════
-//   HORA DE REGRESO
-// ════════════════════════════════════════════════
-const regresoInput = document.getElementById('regreso');
-const relojOculto  = document.getElementById('reloj-oculto');
+        <div class="card">
+            <h3>Añadir Movimiento</h3>
+            <div class="form-group">
+                <label>Subcuenta Principal:</label>
+                <select id="m_subcuenta"></select>
+            </div>
+            <div class="check-grid" style="padding:0; background:transparent;">
+                <div class="form-group"><label>Debe (Cargo):</label><input type="number" id="m_debe" step="0.01" min="0" placeholder="0.00"></div>
+                <div class="form-group"><label>Haber (Abono):</label><input type="number" id="m_haber" step="0.01" min="0" placeholder="0.00"></div>
+            </div>
+            
+            <div class="iva-box">
+                <label>Subcuenta de IVA (Automático):</label>
+                <select id="m_sub_iva" onchange="guardarIvaDefault()" style="margin-bottom: 10px;">
+                    <option value="">-- Configura subctas de IVA primero --</option>
+                </select>
+                <div style="display: flex; gap: 8px;">
+                    <button class="btn-calc" onclick="agregarConIVA('desglosar')" title="Extrae el IVA y agrega ambos movimientos">↙️ Desglosar (÷1.16)</button>
+                    <button class="btn-calc" onclick="agregarConIVA('calcular')" title="Calcula el IVA extra y agrega ambos movimientos">🧮 Calcular (+16%)</button>
+                </div>
+            </div>
 
-function abrirRelojRegreso() {
-    relojOculto.showPicker ? relojOculto.showPicker() : relojOculto.click();
-}
+            <button class="btn-add" onclick="agregarMovimientoNormal()">➕ Añadir fila normal (Sin IVA)</button>
+        </div>
 
-relojOculto.addEventListener('change', function () {
-    if (!this.value) return;
-    const [hh, mm] = this.value.split(':');
-    const h    = parseInt(hh);
-    const ampm = h >= 12 ? 'pm' : 'am';
-    const h12  = h % 12 || 12;
-    const horaTexto = `${h12}:${mm} ${ampm}`;
-    regresoInput.value = horaTexto;
-    localStorage.setItem('stucv_regreso', horaTexto);
-    regresoInput.focus();
-});
+        <div class="card">
+            <h3><span>Detalle</span><span id="label-cuadre" class="totals-err">$ 0.00 / $ 0.00</span></h3>
+            <div class="table-container">
+                <table>
+                    <thead><tr><th>Subcuenta</th><th>Debe</th><th>Haber</th><th></th></tr></thead>
+                    <tbody id="lista-temp-mov">
+                        <tr><td colspan="4" style="text-align:center; color:#94a3b8">Sin movimientos</td></tr>
+                    </tbody>
+                </table>
+            </div>
+            <button class="btn-main" style="margin-top:15px" onclick="guardarAsiento()">💾 Guardar Asiento</button>
+            <button id="btn-cancel-a" class="btn-cancel" style="display:none" onclick="cancelarEdicionAsiento()">❌ Cancelar Edición</button>
+        </div>
+    </div>
 
-regresoInput.addEventListener('input', function () {
-    localStorage.setItem('stucv_regreso', this.value);
-});
+    <div id="win-datos" class="window">
+        <div class="card" style="padding: 15px;">
+            <h3>Reportes</h3>
+            <button class="btn-excel" onclick="exportarExcel()">📊 Descargar Catálogo (CSV)</button>
+            <button class="btn-excel" style="background: #0ea5e9; margin-top: 10px;" onclick="exportarLibroDiario()">📘 Descargar Libro Diario (CSV)</button>
+        </div>
+        <div class="card" style="padding: 15px;">
+            <h3>Copia de Seguridad</h3>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                <button class="btn-backup" onclick="descargarJSON()">💾 Guardar Copia</button>
+                <button class="btn-restore" onclick="triggerImportar()">📂 Restaurar</button>
+            </div>
+            <input type="file" id="file-input" style="display: none;" accept=".json" onchange="leerArchivo(this)">
+            <p style="font-size: 0.7rem; color: #64748b; margin-top: 5px;">* "Restaurar" reemplazará todos los datos en Firebase.</p>
+        </div>
+        <div class="card" style="padding: 15px;">
+            <h3>Zona de Peligro</h3>
+            <button class="btn-clean" onclick="borrarTodo()">🗑️ Borrar Toda la Base de Datos</button>
+        </div>
+        <div class="card" style="padding: 10px;">
+            <h3>Lista de Rubros</h3>
+            <div class="table-container">
+                <table><thead><tr><th>Cod</th><th>Nombre</th><th>Acciones</th></tr></thead><tbody id="lista-r"></tbody></table>
+            </div>
+        </div>
+        <div class="card" style="padding: 10px;">
+            <h3>Lista de Cuentas</h3>
+            <div class="table-container">
+                <table><thead><tr><th>Cod</th><th>Nombre</th><th>Acciones</th></tr></thead><tbody id="lista-c"></tbody></table>
+            </div>
+        </div>
+        <div class="card" style="padding: 10px;">
+            <h3>Lista de Subcuentas</h3>
+            <div class="table-container">
+                <table><thead><tr><th>Cod</th><th>Nombre</th><th>Acciones</th></tr></thead><tbody id="lista-s"></tbody></table>
+            </div>
+        </div>
+        <div class="card" style="padding: 10px;">
+            <h3>Historial de Asientos</h3>
+            <div class="table-container">
+                <table><thead><tr><th>No</th><th>Fecha</th><th>Concepto</th><th>Acciones</th></tr></thead><tbody id="lista-a"></tbody></table>
+            </div>
+        </div>
+    </div>
 
-// ════════════════════════════════════════════════
-//   BUSCADOR DE DESTINO TIPO GOOGLE
-// ════════════════════════════════════════════════
-const DESTINOS_BASE = ['MISANTLA', 'XALAPA', 'VERACRUZ', 'CARDEL'];
-const DESTINO_KEY   = 'busqueda_destino';
-const MAX_HISTORIAL = 20;
+    <div id="success-overlay"><div class="success-icon">✓</div></div>
 
-const destinoInput    = document.getElementById('destino');
-const destinoDropdown = document.getElementById('destino-dropdown');
-let activeIndex = -1;
+    <nav class="tab-bar">
+        <div class="tab-item active" onclick="switchWin('win-rubros', this)"><span>📁</span><span>Rubros</span></div>
+        <div class="tab-item" onclick="switchWin('win-cuentas', this)"><span>📄</span><span>Cuentas</span></div>
+        <div class="tab-item" onclick="switchWin('win-subs', this)"><span>📑</span><span>Subctas</span></div>
+        <div class="tab-item" onclick="switchWin('win-asientos', this)"><span>📝</span><span>Asientos</span></div>
+        <div class="tab-item" onclick="switchWin('win-datos', this)"><span>⚙️</span><span>Datos</span></div>
+    </nav>
 
-function getHistorialDestino() {
-    return JSON.parse(localStorage.getItem(DESTINO_KEY)) || [];
-}
-function saveHistorialDestino(h) {
-    localStorage.setItem(DESTINO_KEY, JSON.stringify(h));
-}
-function guardarDestino(valor) {
-    if (!valor || !valor.trim()) return;
-    const val = valor.trim().toUpperCase();
-    let h = getHistorialDestino().filter(i => i.toUpperCase() !== val);
-    h.unshift(val);
-    if (h.length > MAX_HISTORIAL) h = h.slice(0, MAX_HISTORIAL);
-    saveHistorialDestino(h);
-}
-function eliminarDestino(valor, e) {
-    e.stopPropagation();
-    let h = getHistorialDestino().filter(i => i.toUpperCase() !== valor.toUpperCase());
-    saveHistorialDestino(h);
-    renderDropdown(destinoInput.value);
-}
-function resaltar(texto, query) {
-    if (!query) return texto;
-    const idx = texto.toUpperCase().indexOf(query.toUpperCase());
-    if (idx === -1) return texto;
-    return texto.slice(0, idx)
-        + '<mark>' + texto.slice(idx, idx + query.length) + '</mark>'
-        + texto.slice(idx + query.length);
-}
-function renderDropdown(query) {
-    const historial = getHistorialDestino();
-    const q = (query || '').trim().toUpperCase();
-    const histFiltrado   = q ? historial.filter(i => i.includes(q)) : historial;
-    const basesFiltradas = DESTINOS_BASE.filter(b =>
-        (!q || b.includes(q)) &&
-        !historial.some(h => h.toUpperCase() === b.toUpperCase())
-    );
-    const resultados = [...histFiltrado, ...basesFiltradas];
+    <!-- ============================================================
+         FIREBASE SDK v10
+    ============================================================ -->
+    <script type="module">
+        import { initializeApp }          from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getDatabase, ref, set, remove, onValue }
+                                           from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
 
-    activeIndex = -1;
-    destinoDropdown.innerHTML = '';
+        // ── CREDENCIALES ──────────────────────────────────────────
+        const firebaseConfig = {
+            apiKey:            "AIzaSyD2WdbnymwAN6bEcCud7z7dVXWIPnq70jU",
+            authDomain:        "contabilidad-3b68f.firebaseapp.com",
+            databaseURL:       "https://contabilidad-3b68f-default-rtdb.firebaseio.com",
+            projectId:         "contabilidad-3b68f",
+            storageBucket:     "contabilidad-3b68f.firebasestorage.app",
+            messagingSenderId: "253124632719",
+            appId:             "1:253124632719:web:49bf3681c4080298ebd0fa"
+        };
 
-    if (!resultados.length) {
-        destinoDropdown.innerHTML = q
-            ? `<div class="dropdown-empty">Presiona Enter para guardar "<strong>${q}</strong>"</div>`
-            : `<div class="dropdown-empty">Sin resultados</div>`;
-        destinoDropdown.classList.add('open');
-        return;
-    }
-    resultados.forEach(valor => {
-        const esHistorial = historial.some(h => h.toUpperCase() === valor.toUpperCase());
-        const item = document.createElement('div');
-        item.className = 'dropdown-item';
-        item.innerHTML = `
-            <span class="icon">${esHistorial ? '🕐' : '📍'}</span>
-            <span class="text">${resaltar(valor, query)}</span>
-            ${esHistorial
-                ? `<button class="btn-del"
-                       onmousedown="eliminarDestino('${valor}', event)"
-                       title="Eliminar">✕</button>`
-                : ''}`;
-        item.addEventListener('mousedown', () => seleccionarDestino(valor));
-        destinoDropdown.appendChild(item);
-    });
-    destinoDropdown.classList.add('open');
-}
-function seleccionarDestino(valor) {
-    destinoInput.value = valor;
-    localStorage.setItem('stucv_destino', valor);
-    cerrarDropdown();
-}
-function cerrarDropdown() {
-    destinoDropdown.classList.remove('open');
-    activeIndex = -1;
-}
+        const fireApp = initializeApp(firebaseConfig);
+        const fireDB  = getDatabase(fireApp);
 
-destinoInput.addEventListener('input', function () {
-    localStorage.setItem('stucv_destino', this.value);
-    renderDropdown(this.value);
-});
-destinoInput.addEventListener('focus', function () { renderDropdown(this.value); });
-destinoInput.addEventListener('blur',  function () { setTimeout(cerrarDropdown, 150); });
-destinoInput.addEventListener('keydown', function (e) {
-    const items = destinoDropdown.querySelectorAll('.dropdown-item');
-    if (!items.length) {
-        if (e.key === 'Enter' && this.value.trim()) {
-            guardarDestino(this.value.trim()); cerrarDropdown();
+        // ── BASE DE DATOS LOCAL (en memoria) ──────────────────────
+        let db = { rubros: [], cuentas: [], subcuentas: [], asientos: [], movimientos: [], config: { ivaDefault: "" } };
+        let editIdx    = { r: null, c: null, s: null, a: null };
+        let tempMovimientos = [];
+        let firebaseListo  = false;
+
+        // ── ESTADO DE SINCRONIZACIÓN ──────────────────────────────
+        function setSyncStatus(estado) {
+            const dot   = document.getElementById('sync-dot');
+            const label = document.getElementById('sync-label');
+            if (estado === 'online')  { dot.className = 'online';  label.textContent = 'En línea'; }
+            if (estado === 'offline') { dot.className = 'offline'; label.textContent = 'Sin conexión'; }
+            if (estado === 'sync')    { dot.className = '';        label.textContent = 'Sincronizando...'; }
         }
-        return;
-    }
-    if      (e.key === 'ArrowDown') { e.preventDefault(); activeIndex = Math.min(activeIndex + 1, items.length - 1); }
-    else if (e.key === 'ArrowUp')   { e.preventDefault(); activeIndex = Math.max(activeIndex - 1, -1); }
-    else if (e.key === 'Enter') {
-        e.preventDefault();
-        if (activeIndex >= 0) seleccionarDestino(items[activeIndex].querySelector('.text').textContent.trim());
-        else if (this.value.trim()) { guardarDestino(this.value.trim()); cerrarDropdown(); }
-        return;
-    } else if (e.key === 'Escape') { cerrarDropdown(); return; }
-    items.forEach((it, i) => it.classList.toggle('active', i === activeIndex));
-    if (activeIndex >= 0) items[activeIndex].scrollIntoView({ block: 'nearest' });
-});
-document.addEventListener('click', function (e) {
-    if (!document.getElementById('destino-wrapper').contains(e.target)) cerrarDropdown();
-});
 
-// ════════════════════════════════════════════════
-//   INICIALIZACIÓN
-// ════════════════════════════════════════════════
-window.onload = function () {
-    const today = new Date().toISOString().split('T')[0];
-    inputs.forEach(id => {
-        const el = document.getElementById(id);
-        if (!el) return;
-        if (id === 'fecha') {
-            el.value = today;
-        } else {
-            const saved = localStorage.getItem('stucv_' + id);
-            if (saved) el.value = saved;
+        // ── ARRANQUE DIRECTO SIN AUTH ─────────────────────────────
+        arrancarListeners();
+
+        // ── LISTENER EN TIEMPO REAL (raíz /conta) ─────────────────
+        function arrancarListeners() {
+            const raiz = ref(fireDB, 'conta');
+            onValue(raiz, (snapshot) => {
+                const datos = snapshot.val();
+                if (datos) {
+                    db.rubros      = datos.rubros      ? Object.values(datos.rubros)      : [];
+                    db.cuentas     = datos.cuentas     ? Object.values(datos.cuentas)     : [];
+                    db.subcuentas  = datos.subcuentas  ? Object.values(datos.subcuentas)  : [];
+                    db.asientos    = datos.asientos    ? Object.values(datos.asientos)    : [];
+                    db.movimientos = datos.movimientos ? Object.values(datos.movimientos) : [];
+                    db.config      = datos.config      || { ivaDefault: "" };
+                } else {
+                    db = { rubros: [], cuentas: [], subcuentas: [], asientos: [], movimientos: [], config: { ivaDefault: "" } };
+                }
+                setSyncStatus('online');
+                firebaseListo = true;
+                document.getElementById('loading-overlay').classList.add('hidden');
+                renderizar();
+                if (document.getElementById('win-asientos').classList.contains('active') && editIdx.a === null) {
+                    iniciarAsiento();
+                }
+            }, (error) => {
+                console.error("Error Firebase:", error);
+                setSyncStatus('offline');
+                document.getElementById('loading-overlay').classList.add('hidden');
+                firebaseListo = false;
+            });
         }
-        cargarHistorial(id);
-    });
-    const savedDestino = localStorage.getItem('stucv_destino');
-    if (savedDestino) destinoInput.value = savedDestino;
-};
 
-inputs.forEach(id => {
-    const el = document.getElementById(id);
-    if (!el) return;
-    el.addEventListener('input', function () {
-        if (id !== 'fecha') localStorage.setItem('stucv_' + id, this.value);
-    });
-});
+        // ── GUARDAR EN FIREBASE ────────────────────────────────────
+        // Convierte arrays a objetos indexados por posición para Firebase
+        function arrayAObjeto(arr) {
+            const obj = {};
+            arr.forEach((item, i) => { obj[i] = item; });
+            return obj;
+        }
 
-// ════════════════════════════════════════════════
-//   HISTORIAL GENÉRICO
-// ════════════════════════════════════════════════
-function cargarHistorial(id) {
-    const datalist = document.getElementById('list-' + id);
-    if (!datalist) return;
-    const h = JSON.parse(localStorage.getItem('historial_' + id)) || [];
-    const existentes = Array.from(datalist.options).map(o => o.value);
-    const todos = [...new Set([...existentes, ...h])];
-    datalist.innerHTML = '';
-    todos.forEach(v => {
-        const opt = document.createElement('option');
-        opt.value = v; datalist.appendChild(opt);
-    });
-}
-function guardarHistorial(id, valor) {
-    if (!valor || !valor.trim()) return;
-    const key = 'historial_' + id;
-    let h = JSON.parse(localStorage.getItem(key)) || [];
-    if (!h.some(i => i.toLowerCase() === valor.toLowerCase())) {
-        h.push(valor);
-        localStorage.setItem(key, JSON.stringify(h));
-        cargarHistorial(id);
-    }
-}
+        window.guardarDB = async function() {
+            if (!firebaseListo) {
+                alert("Sin conexión a Firebase. Intenta de nuevo.");
+                return;
+            }
+            setSyncStatus('sync');
+            try {
+                await set(ref(fireDB, 'conta'), {
+                    rubros:      arrayAObjeto(db.rubros),
+                    cuentas:     arrayAObjeto(db.cuentas),
+                    subcuentas:  arrayAObjeto(db.subcuentas),
+                    asientos:    arrayAObjeto(db.asientos),
+                    movimientos: arrayAObjeto(db.movimientos),
+                    config:      db.config
+                });
+                setSyncStatus('online');
+            } catch(e) {
+                setSyncStatus('offline');
+                alert("Error al guardar en Firebase: " + e.message);
+            }
+        };
 
-// ════════════════════════════════════════════════
-//   FORMATO FECHA Y HORA
-// ════════════════════════════════════════════════
-function formatearFecha(fechaStr) {
-    if (!fechaStr) return "PENDIENTE";
-    const meses = ["Enero","Febrero","Marzo","Abril","Mayo","Junio",
-                   "Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
-    const [year, month, day] = fechaStr.split('-');
-    return `${day} / ${meses[parseInt(month) - 1]} / ${year}`;
-}
-function formatearHora(horaStr) {
-    if (!horaStr) return "PENDIENTE";
-    if (!/^\d{1,2}:\d{2}$/.test(horaStr)) return horaStr;
-    const [hour, minute] = horaStr.split(':');
-    const h    = parseInt(hour);
-    const ampm = h >= 12 ? 'pm' : 'am';
-    const h12  = h % 12 || 12;
-    return `${h12}:${minute} ${ampm}`;
-}
+        // ── EXPONER FUNCIONES AL SCOPE GLOBAL ─────────────────────
+        // (necesario porque el HTML usa onclick="...")
 
-// ════════════════════════════════════════════════
-//   GENERAR REPORTE
-// ════════════════════════════════════════════════
-function obtenerTextoReporte() {
-    const allIds = [...inputs, 'destino'];
-    const v = {};
-    allIds.forEach(id => {
-        const el = document.getElementById(id);
-        v[id] = el ? el.value : '';
-    });
+        window.switchWin = function(winId, el) {
+            document.querySelectorAll('.window').forEach(w => w.classList.remove('active'));
+            document.querySelectorAll('.tab-item').forEach(t => t.classList.remove('active'));
+            document.getElementById(winId).classList.add('active');
+            if (el) el.classList.add('active');
+            if (winId === 'win-asientos' && editIdx.a === null) iniciarAsiento();
+            renderizar();
+        };
 
-    ['municipio','localidad','conductor','taxi','placas','marca','tipo']
-        .forEach(id => guardarHistorial(id, v[id]));
-    guardarDestino(v.destino);
+        window.showSuccess = function() {
+            const overlay = document.getElementById('success-overlay');
+            overlay.classList.add('visible');
+            setTimeout(() => overlay.classList.remove('visible'), 400);
+        };
 
-    return `""SINDICATO DE TRABAJADORES UNIDOS DE LA COSTA DE VERACRUZ 
-STUCV""
+        function validarCodigo(arr, nuevoCodigo, idxEdicion) {
+            const existe = arr.findIndex(item => item.codigo === nuevoCodigo);
+            if (existe === -1) return true;
+            if (idxEdicion !== null && existe === idxEdicion) return true;
+            return false;
+        }
 
-DE LA MANERA MAS ATENTA SOLICITO EL APOYO PARA UN VIAJE TURISTICO POR FAVOR .
+        // ── RUBROS ────────────────────────────────────────────────
+        window.guardarRubro = async function() {
+            const cod = document.getElementById('r_cod').value.trim();
+            const nom = document.getElementById('r_nom').value.trim();
+            const ef  = Array.from(document.querySelectorAll('.ef-check')).map(c => c.checked ? c.value : 'X').join('');
+            if (!cod) return alert("Código requerido");
+            if (!nom) return alert("Nombre requerido");
+            if (!validarCodigo(db.rubros, cod, editIdx.r)) return alert("Código duplicado");
 
-FECHA :   ${formatearFecha(v.fecha)} 
-HORA DE SALIDA : ${formatearHora(v.hora)} 
-DESTINO : ${v.destino.toUpperCase()} 
-CONDUCTOR : ${v.conductor} 
-TAXI No : ${v.taxi} 
-MUNICIPIO : ${v.municipio} 
-LOCALIDAD : ${v.localidad}
-PLACAS : ${v.placas.toUpperCase()} 
-MARCA : ${v.marca} 
-TIPO :  ${v.tipo} 
-USUARIOS : ${v.usuarios} 
-HORA DE REGRESO : ${v.regreso} 
+            if (editIdx.r !== null) db.rubros[editIdx.r] = { codigo: cod, nombre: nom, ef };
+            else db.rubros.push({ codigo: cod, nombre: nom, ef });
+            await guardarDB();
+            finalizar('r');
+        };
 
-GRACIAS  POR LA COMPRESION , EXCELENTE DIA ...`;
-}
+        window.editarR = function(idx) {
+            editIdx.r = idx;
+            const item = db.rubros[idx];
+            document.getElementById('r_cod').value = item.codigo;
+            document.getElementById('r_nom').value = item.nombre;
+            document.querySelectorAll('.ef-check').forEach((c, i) => c.checked = item.ef[i] !== 'X');
+            document.getElementById('label-edit-r').style.display = 'inline';
+            document.getElementById('btn-cancel-r').style.display = 'block';
+            switchWin('win-rubros', document.querySelectorAll('.tab-item')[0]);
+        };
 
-// ════════════════════════════════════════════════
-//   COPIAR / WHATSAPP / LIMPIAR
-// ════════════════════════════════════════════════
-function copiarAlPortapapeles(texto) {
-    if (navigator.clipboard && window.isSecureContext)
-        return navigator.clipboard.writeText(texto);
-    return new Promise((resolve, reject) => {
-        const ta = document.createElement("textarea");
-        ta.value = texto;
-        Object.assign(ta.style, {
-            position:'fixed', top:'0', left:'0', width:'2em', height:'2em',
-            padding:'0', border:'none', outline:'none', background:'transparent'
-        });
-        document.body.appendChild(ta);
-        ta.focus(); ta.select();
-        try { document.execCommand('copy') ? resolve() : reject(); }
-        catch(e) { reject(e); }
-        document.body.removeChild(ta);
-    });
-}
-function copiarReporte() {
-    const texto = obtenerTextoReporte();
-    copiarAlPortapapeles(texto)
-        .then(() => {
-            mostrarNotificacion();
-            document.getElementById('preview-area').style.display = 'none';
-        })
-        .catch(() => {
-            const p = document.getElementById('preview-area');
-            p.textContent = texto; p.style.display = 'block';
-            alert("Tu dispositivo bloqueó el copiado. Mantén presionado el texto gris para copiarlo.");
-        });
-}
-function enviarWhatsApp() {
-    const texto = obtenerTextoReporte();
-    window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(texto)}`, '_blank');
-}
-function mostrarNotificacion() {
-    const n = document.getElementById('notification');
-    n.style.display = 'block';
-    setTimeout(() => { n.style.display = 'none'; }, 3000);
-}
-function limpiarFormulario() {
-    if (confirm("¿Seguro que quieres borrar los datos del viaje? (Se conservarán tus datos de Taxi y Conductor)")) {
-        destinoInput.value = '';
-        localStorage.removeItem('stucv_destino');
-        document.getElementById('localidad').value = '';
-        localStorage.removeItem('stucv_localidad');
-        regresoInput.value = 'Al terminar actividades';
-        localStorage.setItem('stucv_regreso', 'Al terminar actividades');
-        document.getElementById('usuarios').value = '3';
-        document.getElementById('fecha').value = new Date().toISOString().split('T')[0];
-    }
-}
-</script>
+        window.eliminarR = async function(idx) {
+            if (confirm("¿Eliminar rubro?")) { db.rubros.splice(idx, 1); await guardarDB(); }
+        };
+
+        // ── CUENTAS ───────────────────────────────────────────────
+        window.guardarCuenta = async function() {
+            const p   = document.getElementById('c_padre').value;
+            const suf = document.getElementById('c_cod_suf').value.trim();
+            const nom = document.getElementById('c_nom').value.trim();
+            if (!p)   return alert("Seleccione Rubro Padre");
+            if (!suf) return alert("Código requerido");
+            if (!nom) return alert("Nombre requerido");
+
+            const codigoCompleto = p + suf;
+            if (!validarCodigo(db.cuentas, codigoCompleto, editIdx.c)) return alert("Código duplicado");
+
+            const obj = { codigo: codigoCompleto, nombre: nom, rubroPadre: p, nat: document.getElementById('c_nat').value };
+
+            if (editIdx.c !== null) db.cuentas[editIdx.c] = obj;
+            else {
+                db.cuentas.push(obj);
+                if (document.getElementById('c_auto_sub').checked) {
+                    const subCodigo = codigoCompleto + "001";
+                    if (validarCodigo(db.subcuentas, subCodigo, null))
+                        db.subcuentas.push({ codigo: subCodigo, nombre: nom, cuentaPadre: codigoCompleto, pyg: false, inv: false, is_iva: false });
+                }
+            }
+            await guardarDB();
+            finalizar('c');
+        };
+
+        window.editarC = function(idx) {
+            editIdx.c = idx;
+            const item = db.cuentas[idx];
+            document.getElementById('c_padre').value    = item.rubroPadre;
+            document.getElementById('c_cod_suf').value  = item.codigo.replace(item.rubroPadre, "");
+            document.getElementById('c_nom').value      = item.nombre;
+            document.getElementById('c_nat').value      = item.nat;
+            document.getElementById('label-edit-c').style.display = 'inline';
+            document.getElementById('btn-cancel-c').style.display = 'block';
+            switchWin('win-cuentas', document.querySelectorAll('.tab-item')[1]);
+        };
+
+        window.eliminarC = async function(idx) {
+            if (confirm("¿Eliminar cuenta?")) { db.cuentas.splice(idx, 1); await guardarDB(); }
+        };
+
+        // ── SUBCUENTAS ────────────────────────────────────────────
+        window.guardarSubcuenta = async function() {
+            const p   = document.getElementById('s_padre').value;
+            const suf = document.getElementById('s_cod_suf').value.trim();
+            const nom = document.getElementById('s_nom').value.trim();
+            if (!p)   return alert("Seleccione Cuenta Padre");
+            if (!suf) return alert("Código requerido");
+            if (!nom) return alert("Nombre requerido");
+
+            const codigoCompleto = p + suf;
+            if (!validarCodigo(db.subcuentas, codigoCompleto, editIdx.s)) return alert("Código duplicado");
+
+            const obj = {
+                codigo:      codigoCompleto,
+                nombre:      nom,
+                cuentaPadre: p,
+                pyg:    document.getElementById('s_pyg').checked,
+                inv:    document.getElementById('s_inv').checked,
+                is_iva: document.getElementById('s_is_iva').checked
+            };
+            if (editIdx.s !== null) db.subcuentas[editIdx.s] = obj;
+            else db.subcuentas.push(obj);
+            await guardarDB();
+            finalizar('s');
+        };
+
+        window.editarS = function(idx) {
+            editIdx.s = idx;
+            const item = db.subcuentas[idx];
+            document.getElementById('s_padre').value    = item.cuentaPadre;
+            document.getElementById('s_cod_suf').value  = item.codigo.replace(item.cuentaPadre, "");
+            document.getElementById('s_nom').value      = item.nombre;
+            document.getElementById('s_pyg').checked    = item.pyg    || false;
+            document.getElementById('s_inv').checked    = item.inv    || false;
+            document.getElementById('s_is_iva').checked = item.is_iva || false;
+            document.getElementById('label-edit-s').style.display = 'inline';
+            document.getElementById('btn-cancel-s').style.display = 'block';
+            switchWin('win-subs', document.querySelectorAll('.tab-item')[2]);
+        };
+
+        window.eliminarS = async function(idx) {
+            if (confirm("¿Eliminar subcuenta?")) { db.subcuentas.splice(idx, 1); await guardarDB(); }
+        };
+
+        // ── ASIENTOS ─────────────────────────────────────────────
+        function iniciarAsiento() {
+            if (editIdx.a !== null) return;
+            let maxNo = 0;
+            db.asientos.forEach(a => { if (Number(a.no) > maxNo) maxNo = Number(a.no); });
+            document.getElementById('a_no').value = maxNo + 1;
+            if (!document.getElementById('a_fecha').value)
+                document.getElementById('a_fecha').value = new Date().toISOString().split('T')[0];
+        }
+
+        window.guardarIvaDefault = function() {
+            db.config.ivaDefault = document.getElementById('m_sub_iva').value;
+            guardarDB();
+        };
+
+        window.agregarConIVA = function(modo) {
+            const codMain  = document.getElementById('m_subcuenta').value;
+            const codIva   = document.getElementById('m_sub_iva').value;
+            const inputD   = parseFloat(document.getElementById('m_debe').value)  || 0;
+            const inputH   = parseFloat(document.getElementById('m_haber').value) || 0;
+
+            if (!codMain) return alert("Selecciona la Subcuenta Principal.");
+            if (!codIva)  return alert("Selecciona una cuenta de IVA. Si no tienes, ve a Subcuentas y marca alguna como 'Es cuenta de IVA'.");
+            if (inputD === 0 && inputH === 0) return alert("Captura un importe en Debe o Haber.");
+            if (inputD > 0 && inputH > 0)    return alert("Un movimiento no puede tener importe en Debe y Haber a la vez.");
+
+            let monto  = inputD > 0 ? inputD : inputH;
+            let esDebe = inputD > 0;
+            let subtotal, iva;
+
+            if (modo === 'desglosar') {
+                subtotal = Number((monto / 1.16).toFixed(2));
+                iva      = Number((monto - subtotal).toFixed(2));
+            } else {
+                subtotal = monto;
+                iva      = Number((monto * 0.16).toFixed(2));
+            }
+
+            const mainData = db.subcuentas.find(s => s.codigo === codMain);
+            tempMovimientos.push({ subcuenta: codMain, nombre: mainData ? mainData.nombre : "", debe: esDebe ? subtotal : 0, haber: !esDebe ? subtotal : 0 });
+
+            const ivaData = db.subcuentas.find(s => s.codigo === codIva);
+            tempMovimientos.push({ subcuenta: codIva, nombre: ivaData ? ivaData.nombre : "", debe: esDebe ? iva : 0, haber: !esDebe ? iva : 0 });
+
+            document.getElementById('m_subcuenta').value = "";
+            document.getElementById('m_sub_iva').value   = "";
+            document.getElementById('m_debe').value      = "";
+            document.getElementById('m_haber').value     = "";
+
+            renderTempMovimientos();
+            window.showSuccess();
+        };
+
+        window.agregarMovimientoNormal = function() {
+            const codSub = document.getElementById('m_subcuenta').value;
+            const debe   = parseFloat(document.getElementById('m_debe').value)  || 0;
+            const haber  = parseFloat(document.getElementById('m_haber').value) || 0;
+
+            if (!codSub)                  return alert("Selecciona una subcuenta válida");
+            if (debe === 0 && haber === 0) return alert("Captura un importe en Debe o Haber");
+            if (debe > 0 && haber > 0)    return alert("Un movimiento no puede tener importe en Debe y Haber a la vez");
+
+            const subData = db.subcuentas.find(s => s.codigo === codSub);
+            tempMovimientos.push({ subcuenta: codSub, nombre: subData ? subData.nombre : "", debe, haber });
+
+            document.getElementById('m_subcuenta').value = "";
+            document.getElementById('m_debe').value      = "";
+            document.getElementById('m_haber').value     = "";
+
+            renderTempMovimientos();
+        };
+
+        window.eliminarMov = function(idx) { tempMovimientos.splice(idx, 1); renderTempMovimientos(); };
+
+        function renderTempMovimientos() {
+            let sumDebe = 0, sumHaber = 0;
+            const tbody = document.getElementById('lista-temp-mov');
+
+            if (tempMovimientos.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; color:#94a3b8">Sin movimientos</td></tr>';
+            } else {
+                tbody.innerHTML = tempMovimientos.map((m, i) => {
+                    sumDebe  += m.debe;
+                    sumHaber += m.haber;
+                    return `<tr>
+                        <td title="${m.nombre}"><b>${m.subcuenta}</b></td>
+                        <td>${m.debe  > 0 ? m.debe.toFixed(2)  : ''}</td>
+                        <td>${m.haber > 0 ? m.haber.toFixed(2) : ''}</td>
+                        <td><button class="btn-icon btn-del" onclick="eliminarMov(${i})">X</button></td>
+                    </tr>`;
+                }).join('');
+            }
+
+            const lc = document.getElementById('label-cuadre');
+            lc.innerText   = `$ ${sumDebe.toFixed(2)} / $ ${sumHaber.toFixed(2)}`;
+            lc.className   = (sumDebe > 0 && Math.abs(sumDebe - sumHaber) < 0.001) ? "totals-ok" : "totals-err";
+        }
+
+        window.guardarAsiento = async function() {
+            const no       = document.getElementById('a_no').value;
+            const fecha    = document.getElementById('a_fecha').value;
+            const concepto = document.getElementById('a_concepto').value.trim();
+            const tipo     = document.getElementById('a_tipo').value;
+
+            if (!no || !fecha || !concepto) return alert("Faltan datos del asiento (Número, Fecha o Concepto)");
+            if (tempMovimientos.length < 2)  return alert("Un asiento debe tener al menos dos movimientos");
+
+            let sumDebe = 0, sumHaber = 0;
+            tempMovimientos.forEach(m => { sumDebe += m.debe; sumHaber += m.haber; });
+            if (Math.abs(sumDebe - sumHaber) > 0.001)
+                return alert(`¡El asiento no cuadra!\nSuma Debe: ${sumDebe.toFixed(2)}\nSuma Haber: ${sumHaber.toFixed(2)}\nDiferencia: ${Math.abs(sumDebe - sumHaber).toFixed(2)}`);
+            if (sumDebe === 0) return alert("Los importes no pueden estar en ceros");
+
+            const idAsiento = editIdx.a ? editIdx.a : "AST-" + Date.now();
+
+            if (editIdx.a !== null) {
+                const idx = db.asientos.findIndex(a => a.id === editIdx.a);
+                if (idx > -1) db.asientos[idx] = { id: idAsiento, no, fecha, concepto, tipo };
+                db.movimientos = db.movimientos.filter(m => m.idAsiento !== editIdx.a);
+            } else {
+                db.asientos.push({ id: idAsiento, no, fecha, concepto, tipo });
+            }
+
+            tempMovimientos.forEach(m => {
+                db.movimientos.push({ idAsiento: idAsiento, noAsiento: no, subcuenta: m.subcuenta, debe: m.debe, haber: m.haber });
+            });
+
+            await guardarDB();
+
+            tempMovimientos = [];
+            document.getElementById('a_concepto').value = "";
+            editIdx.a = null;
+            document.getElementById('label-edit-a').style.display = 'none';
+            document.getElementById('btn-cancel-a').style.display = 'none';
+
+            iniciarAsiento();
+            renderTempMovimientos();
+            window.showSuccess();
+            alert("Asiento registrado correctamente");
+        };
+
+        window.editarAsiento = function(idAsiento) {
+            const asiento = db.asientos.find(a => a.id === idAsiento);
+            if (!asiento) return;
+
+            editIdx.a = idAsiento;
+            document.getElementById('a_no').value      = asiento.no;
+            document.getElementById('a_fecha').value   = asiento.fecha;
+            document.getElementById('a_concepto').value = asiento.concepto;
+            document.getElementById('a_tipo').value    = asiento.tipo || "1. Normal";
+
+            const movs = db.movimientos.filter(m => m.idAsiento === idAsiento);
+            tempMovimientos = movs.map(m => {
+                const subData = db.subcuentas.find(s => s.codigo === m.subcuenta);
+                return { subcuenta: m.subcuenta, nombre: subData ? subData.nombre : "Sin Nombre", debe: m.debe, haber: m.haber };
+            });
+
+            document.getElementById('label-edit-a').style.display = 'inline';
+            document.getElementById('btn-cancel-a').style.display = 'block';
+            renderTempMovimientos();
+            switchWin('win-asientos', document.querySelectorAll('.tab-item')[3]);
+        };
+
+        window.eliminarAsiento = async function(idAsiento) {
+            if (confirm("¿Estás seguro de eliminar este asiento y todos sus movimientos?")) {
+                db.asientos    = db.asientos.filter(a => a.id !== idAsiento);
+                db.movimientos = db.movimientos.filter(m => m.idAsiento !== idAsiento);
+                await guardarDB();
+            }
+        };
+
+        window.cancelarEdicionAsiento = function() {
+            editIdx.a = null;
+            tempMovimientos = [];
+            document.getElementById('a_concepto').value = "";
+            document.getElementById('label-edit-a').style.display = 'none';
+            document.getElementById('btn-cancel-a').style.display = 'none';
+            iniciarAsiento();
+            renderTempMovimientos();
+        };
+
+        // ── FINALIZADORES ─────────────────────────────────────────
+        function finalizar(tipo) {
+            if (tipo === 'r') {
+                document.getElementById('r_cod').value = '';
+                document.getElementById('r_nom').value = '';
+                editIdx.r = null;
+                document.getElementById('label-edit-r').style.display = 'none';
+                document.getElementById('btn-cancel-r').style.display = 'none';
+                document.querySelectorAll('.ef-check').forEach(c => c.checked = false);
+            }
+            if (tipo === 'c') {
+                document.getElementById('c_cod_suf').value = '';
+                document.getElementById('c_nom').value = '';
+                editIdx.c = null;
+                document.getElementById('label-edit-c').style.display = 'none';
+                document.getElementById('btn-cancel-c').style.display = 'none';
+                document.getElementById('c_auto_sub').checked = false;
+            }
+            if (tipo === 's') {
+                document.getElementById('s_cod_suf').value = '';
+                document.getElementById('s_nom').value = '';
+                editIdx.s = null;
+                document.getElementById('label-edit-s').style.display = 'none';
+                document.getElementById('btn-cancel-s').style.display = 'none';
+                document.getElementById('s_pyg').checked    = false;
+                document.getElementById('s_inv').checked    = false;
+                document.getElementById('s_is_iva').checked = false;
+            }
+            window.showSuccess();
+        }
+
+        window.cancelarEdicion = function() {
+            editIdx.r = null; editIdx.c = null; editIdx.s = null;
+            document.querySelectorAll('.edit-badge').forEach(e => e.style.display = 'none');
+            document.querySelectorAll('.btn-cancel').forEach(b => b.style.display = 'none');
+            ['r_cod','r_nom','c_cod_suf','c_nom','s_cod_suf','s_nom'].forEach(id => document.getElementById(id).value = '');
+        };
+
+        // ── RENDERIZADO ───────────────────────────────────────────
+        window.renderizar = function() {
+            document.getElementById('lista-r').innerHTML = db.rubros.map((r,i) =>
+                `<tr><td>${r.codigo}</td><td>${r.nombre}</td><td><div class="action-btns">
+                <button class="btn-icon btn-edit" onclick="editarR(${i})">✏️</button>
+                <button class="btn-icon btn-del"  onclick="eliminarR(${i})">🗑️</button>
+                </div></td></tr>`).join('');
+
+            document.getElementById('lista-c').innerHTML = db.cuentas.map((c,i) =>
+                `<tr><td>${c.codigo}</td><td>${c.nombre}</td><td><div class="action-btns">
+                <button class="btn-icon btn-edit" onclick="editarC(${i})">✏️</button>
+                <button class="btn-icon btn-del"  onclick="eliminarC(${i})">🗑️</button>
+                </div></td></tr>`).join('');
+
+            document.getElementById('lista-s').innerHTML = db.subcuentas.map((s,i) =>
+                `<tr><td>${s.codigo}</td><td>${s.nombre}</td><td><div class="action-btns">
+                <button class="btn-icon btn-edit" onclick="editarS(${i})">✏️</button>
+                <button class="btn-icon btn-del"  onclick="eliminarS(${i})">🗑️</button>
+                </div></td></tr>`).join('');
+
+            document.getElementById('lista-a').innerHTML = db.asientos.map(a =>
+                `<tr><td>${a.no}</td><td>${a.fecha}</td><td>${a.concepto}</td><td><div class="action-btns">
+                <button class="btn-icon btn-edit" onclick="editarAsiento('${a.id}')">✏️</button>
+                <button class="btn-icon btn-del"  onclick="eliminarAsiento('${a.id}')">🗑️</button>
+                </div></td></tr>`).join('');
+
+            document.getElementById('c_padre').innerHTML =
+                '<option value="">Seleccione...</option>' +
+                db.rubros.map(r => `<option value="${r.codigo}">${r.codigo} - ${r.nombre}</option>`).join('');
+
+            document.getElementById('s_padre').innerHTML =
+                '<option value="">Seleccione...</option>' +
+                db.cuentas.map(c => `<option value="${c.codigo}">${c.codigo} - ${c.nombre}</option>`).join('');
+
+            const subOpts = '<option value="">Seleccione subcuenta...</option>' +
+                db.subcuentas.map(s => `<option value="${s.codigo}">${s.codigo} - ${s.nombre}</option>`).join('');
+            document.getElementById('m_subcuenta').innerHTML = subOpts;
+
+            const ivaCtas = db.subcuentas.filter(s => s.is_iva);
+            document.getElementById('m_sub_iva').innerHTML = ivaCtas.length > 0
+                ? '<option value="">-- Seleccione IVA --</option>' +
+                  ivaCtas.map(s => `<option value="${s.codigo}" ${db.config.ivaDefault === s.codigo ? 'selected' : ''}>${s.codigo} - ${s.nombre}</option>`).join('')
+                : '<option value="">-- Configura subctas de IVA primero --</option>';
+
+            sugerirCta();
+            sugerirSub();
+        };
+
+        window.sugerirCta = function() {
+            const padre = document.getElementById('c_padre').value;
+            if (!padre) { document.getElementById('sug_c').innerText = ""; return; }
+            const hijas = db.cuentas.filter(c => c.rubroPadre === padre);
+            let next = "001";
+            if (hijas.length > 0) {
+                const max = Math.max(...hijas.map(c => parseInt(c.codigo.slice(-3)) || 0));
+                next = String(max + 1).padStart(3, '0');
+            }
+            document.getElementById('sug_c').innerText = `Sugerido: ${next}`;
+        };
+
+        window.sugerirSub = function() {
+            const padre = document.getElementById('s_padre').value;
+            if (!padre) { document.getElementById('sug_s').innerText = ""; return; }
+            const hijas = db.subcuentas.filter(s => s.cuentaPadre === padre);
+            let next = "001";
+            if (hijas.length > 0) {
+                const max = Math.max(...hijas.map(s => parseInt(s.codigo.slice(-3)) || 0));
+                next = String(max + 1).padStart(3, '0');
+            }
+            document.getElementById('sug_s').innerText = `Sugerido: ${next}`;
+        };
+
+        // ── REPORTES Y BACKUP ─────────────────────────────────────
+        window.exportarExcel = function() {
+            let csv = "Tipo,Codigo,Nombre,Padre,Naturaleza,PyG,Inv,IVA\n";
+            db.rubros.forEach(r     => csv += `Rubro,${r.codigo},${r.nombre},,,,\n`);
+            db.cuentas.forEach(c    => csv += `Cuenta,${c.codigo},${c.nombre},${c.rubroPadre},${c.nat},,,\n`);
+            db.subcuentas.forEach(s => csv += `Subcuenta,${s.codigo},${s.nombre},${s.cuentaPadre},,${s.pyg},${s.inv},${s.is_iva}\n`);
+            descargarCSV(csv, 'catalogo_cuentas.csv');
+        };
+
+        window.exportarLibroDiario = function() {
+            let csv = "ID Asiento,No,Fecha,Concepto,Tipo,Subcuenta,Nombre Subcuenta,Debe,Haber\n";
+            db.movimientos.forEach(m => {
+                const a = db.asientos.find(ast => ast.id === m.idAsiento) || {};
+                const s = db.subcuentas.find(sub => sub.codigo === m.subcuenta) || {};
+                csv += `${m.idAsiento},${a.no},${a.fecha},"${a.concepto}",${a.tipo},${m.subcuenta},"${s.nombre}",${m.debe},${m.haber}\n`;
+            });
+            descargarCSV(csv, 'libro_diario.csv');
+        };
+
+        function descargarCSV(contenido, filename) {
+            const blob = new Blob([contenido], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement("a");
+            link.href = URL.createObjectURL(blob);
+            link.download = filename;
+            link.click();
+        }
+
+        window.descargarJSON = function() {
+            const data = JSON.stringify(db, null, 2);
+            const blob = new Blob([data], { type: 'application/json' });
+            const link = document.createElement("a");
+            link.href = URL.createObjectURL(blob);
+            link.download = 'backup_conta_app_firebase.json';
+            link.click();
+        };
+
+        window.triggerImportar = function() { document.getElementById('file-input').click(); };
+
+        window.leerArchivo = async function(input) {
+            const file = input.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = async function(e) {
+                try {
+                    const importedDB = JSON.parse(e.target.result);
+                    if (importedDB && importedDB.rubros) {
+                        db = importedDB;
+                        if (!db.config) db.config = { ivaDefault: "" };
+                        await guardarDB();
+                        alert("Copia restaurada y guardada en Firebase con éxito.");
+                    } else {
+                        alert("El archivo no es un respaldo válido.");
+                    }
+                } catch(err) { alert("Error al leer el archivo JSON."); }
+            };
+            reader.readAsText(file);
+            input.value = "";
+        };
+
+        window.borrarTodo = async function() {
+            if (prompt("Escribe 'BORRAR' para confirmar que deseas eliminar toda la base de datos en Firebase:") === 'BORRAR') {
+                await remove(ref(fireDB, 'conta'));
+                db = { rubros: [], cuentas: [], subcuentas: [], asientos: [], movimientos: [], config: { ivaDefault: "" } };
+                renderizar();
+                alert("Base de datos reiniciada en Firebase.");
+            }
+        };
+
+    </script>
 </body>
 </html>
