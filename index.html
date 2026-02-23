@@ -175,6 +175,36 @@
         /* ── DOS COLUMNAS ── */
         .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
         .two-col .form-group { margin-bottom: 0; }
+
+        /* ── REPORTE PILLS ── */
+        .rep-pill {
+            flex: 1; min-width: 80px; padding: 9px 8px; font-size: 0.78rem; font-weight: 700;
+            border-radius: 8px; border: 1.5px solid var(--border);
+            background: var(--card); color: var(--muted);
+            cursor: pointer; transition: all 0.15s; margin: 0; width: auto;
+            letter-spacing: 0.02em; text-align: center;
+        }
+        .rep-pill.active {
+            background: var(--accent); color: #fff;
+            border-color: var(--accent);
+            box-shadow: 0 2px 8px rgba(26,60,94,0.25);
+        }
+
+        /* ── TABLA INLINE ── */
+        #rep-tabla-inline table { min-width: 500px; }
+        #rep-tabla-inline th {
+            background: #1a3c5e; color: #fff;
+            padding: 8px 10px; font-size: 0.65rem; text-transform: uppercase;
+            letter-spacing: 0.08em; white-space: nowrap; position: sticky; top: 0; z-index: 2;
+        }
+        #rep-tabla-inline td { padding: 7px 10px; border-bottom: 1px solid #f2f0ec; font-size: 0.78rem; white-space: nowrap; }
+        #rep-tabla-inline tr.enc-row td  { background: #dce8f5; font-weight: 700; font-size: 0.75rem; color: #0f1117; padding: 7px 10px; }
+        #rep-tabla-inline tr.col-head td { background: #f0f4f8; font-weight: 700; font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.05em; color: #4b5563; }
+        #rep-tabla-inline tr.tot-row  td { background: #f8f4ec; border-top: 2px solid #c8a96e; font-weight: 700; font-size: 0.78rem; }
+        #rep-tabla-inline tr.glosa-row td { font-style: italic; color: #6b7280; font-size: 0.72rem; border-bottom: 2px double #1a3c5e; }
+        #rep-tabla-inline tr.spacer-row td { padding: 4px 0; border-bottom: none; }
+        #rep-tabla-inline .num { text-align: right; font-variant-numeric: tabular-nums; }
+        #rep-tabla-inline .saldo { color: var(--accent); font-weight: 600; }
     </style>
 </head>
 <body>
@@ -323,10 +353,14 @@
             </div>
             <div class="form-group">
                 <label>Tipo de Asiento</label>
-                <select id="a_tipo">
+                <select id="a_tipo" onchange="checkHintPyG()">
                     <option value="1. Normal">Normal</option>
                     <option value="2. Ajuste">Ajuste</option>
+                    <option value="3. AjustePyG" style="display:none;">Ajuste P y G (auto)</option>
                 </select>
+                <div id="hint-pyg" style="display:none;margin-top:6px;font-size:0.72rem;font-weight:700;color:var(--green);padding:6px 10px;background:var(--green-lt);border-radius:6px;border:1px solid #a7d9c0;">
+                    🔄 Este asiento será clasificado automáticamente como <strong>Ajuste P y G</strong> porque incluye subcuentas de Pérdidas y Ganancias.
+                </div>
             </div>
         </div>
 
@@ -427,58 +461,61 @@
             <div class="section-number">Módulo 05</div>
             <h1 class="section-title">Reportes</h1>
         </div>
+
+        <!-- Período -->
         <div class="card">
-            <div class="card-title">Período del Reporte</div>
+            <div class="card-title">Período</div>
             <div class="two-col">
-                <div class="form-group"><label>Fecha Inicial</label><input type="date" id="rep_fi"></div>
-                <div class="form-group"><label>Fecha Final</label><input type="date" id="rep_ff"></div>
+                <div class="form-group"><label>Fecha Inicial</label><input type="date" id="rep_fi" onchange="vistaReporte()"></div>
+                <div class="form-group"><label>Fecha Final</label><input type="date" id="rep_ff" onchange="vistaReporte()"></div>
             </div>
+            <button class="btn-ghost" style="font-size:0.78rem;padding:8px 12px;width:auto;margin:0;" onclick="resetPeriodo()">↺ Restablecer ejercicio completo</button>
         </div>
-        <div class="card">
-            <div class="card-title">Libro Diario</div>
-            <p style="font-size:0.78rem;color:var(--muted);margin:0 0 14px;">Asientos del período con movimientos y glosa.</p>
-            <div class="btn-row">
-                <button class="btn-success" onclick="generarReporte('diario','xlsx')">📗 Exportar Excel</button>
-                <button class="btn-blue"    onclick="generarReporte('diario','pdf')">📄 Exportar PDF</button>
+
+        <!-- Tipo de reporte — pills -->
+        <div class="card" style="padding:14px;">
+            <div class="card-title" style="margin-bottom:12px;">Tipo de Reporte</div>
+            <div id="rep-pills" style="display:flex;flex-wrap:wrap;gap:7px;">
+                <button class="rep-pill active" data-tipo="diario"   onclick="seleccionarReporte('diario',this)">📋 Diario</button>
+                <button class="rep-pill"        data-tipo="mayor"    onclick="seleccionarReporte('mayor',this)">📒 Mayor</button>
+                <button class="rep-pill"        data-tipo="hoja"     onclick="seleccionarReporte('hoja',this)">📊 Hoja Trab.</button>
+                <button class="rep-pill"        data-tipo="catalogo" onclick="seleccionarReporte('catalogo',this)">📁 Catálogo</button>
             </div>
-        </div>
-        <div class="card">
-            <div class="card-title">Libro Mayor</div>
-            <p style="font-size:0.78rem;color:var(--muted);margin:0 0 10px;">Movimientos por cuenta con saldo acumulado.</p>
-            <div class="form-group" style="margin-bottom:12px;">
-                <label>Agrupar por</label>
-                <select id="mayor_nivel">
+            <!-- Opciones extra por tipo -->
+            <div id="opt-mayor" class="rep-opt" style="display:none;margin-top:12px;">
+                <label style="font-size:0.72rem;font-weight:700;color:var(--muted);letter-spacing:0.04em;">Agrupar por</label>
+                <select id="mayor_nivel" onchange="vistaReporte()" style="margin-top:6px;">
                     <option value="subcuenta">Subcuenta (detallado)</option>
                     <option value="cuenta">Cuenta Mayor (consolidado)</option>
                 </select>
             </div>
-            <div class="btn-row">
-                <button class="btn-success" onclick="generarReporte('mayor','xlsx')">📗 Exportar Excel</button>
-                <button class="btn-blue"    onclick="generarReporte('mayor','pdf')">📄 Exportar PDF</button>
-            </div>
-        </div>
-        <div class="card">
-            <div class="card-title">Hoja de Trabajo</div>
-            <p style="font-size:0.78rem;color:var(--muted);margin:0 0 10px;">Movimientos, ajustes, Pérdidas y Ganancias, activo y pasivo.</p>
-            <div class="form-group" style="margin-bottom:12px;">
-                <label>Agrupar por</label>
-                <select id="hoja_nivel">
+            <div id="opt-hoja" class="rep-opt" style="display:none;margin-top:12px;">
+                <label style="font-size:0.72rem;font-weight:700;color:var(--muted);letter-spacing:0.04em;">Agrupar por</label>
+                <select id="hoja_nivel" onchange="vistaReporte()" style="margin-top:6px;">
                     <option value="subcuenta">Subcuenta (detallado)</option>
                     <option value="cuenta">Cuenta Mayor (consolidado)</option>
                 </select>
             </div>
-            <div class="btn-row">
-                <button class="btn-success" onclick="generarReporte('hoja','xlsx')">📗 Exportar Excel</button>
-                <button class="btn-blue"    onclick="generarReporte('hoja','pdf')">📄 Exportar PDF</button>
-            </div>
         </div>
-        <div class="card">
-            <div class="card-title">Catálogo de Cuentas</div>
-            <p style="font-size:0.78rem;color:var(--muted);margin:0 0 14px;">Rubros, cuentas y subcuentas registradas.</p>
-            <div class="btn-row">
-                <button class="btn-success" onclick="generarReporte('catalogo','xlsx')">📗 Exportar Excel</button>
-                <button class="btn-blue"    onclick="generarReporte('catalogo','pdf')">📄 Exportar PDF</button>
+
+        <!-- Acciones -->
+        <div style="display:flex;gap:8px;margin-bottom:16px;">
+            <button class="btn-success" style="flex:1;margin:0;" onclick="exportarReporteExcel()">📗 Excel</button>
+            <button class="btn-blue"    style="flex:1;margin:0;" onclick="exportarReportePDF()">📄 PDF</button>
+        </div>
+
+        <!-- Tabla inline -->
+        <div class="card" style="padding:0;overflow:hidden;">
+            <div id="rep-header-inline" style="background:var(--accent);color:#fff;padding:14px 16px;">
+                <div style="font-family:'DM Serif Display',serif;font-size:1rem;" id="rep-titulo-inline">Libro Diario</div>
+                <div style="font-size:0.68rem;opacity:0.7;margin-top:2px;" id="rep-periodo-inline"></div>
             </div>
+            <div id="rep-tabla-inline" style="overflow-x:auto;max-height:60vh;overflow-y:auto;">
+                <div style="padding:32px;text-align:center;color:var(--muted);font-size:0.82rem;">
+                    Selecciona un período y tipo de reporte para ver los datos aquí.
+                </div>
+            </div>
+            <div id="rep-totales-inline" style="display:none;background:#f8f4ec;border-top:2px solid var(--accent-2);padding:10px 16px;font-size:0.78rem;font-weight:700;color:var(--amber);"></div>
         </div>
     </div>
 
@@ -567,6 +604,7 @@
             document.getElementById(id).classList.add('active');
             if(el) el.classList.add('active');
             if(id==='win-asientos'&&editIdx.a===null) iniciarAsiento();
+            if(id==='win-reportes'){ if(!document.getElementById('rep_fi').value) resetPeriodo(); else vistaReporte(); }
             renderizar();
         };
 
@@ -667,10 +705,26 @@
             const sd=db.subcuentas.find(s=>s.codigo===cs);
             tempMovimientos.push({subcuenta:cs,nombre:sd?sd.nombre:"",debe:d,haber:h});
             document.getElementById('m_subcuenta').value="";document.getElementById('m_debe').value="";document.getElementById('m_haber').value="";
-            renderTempMovimientos();
+            renderTempMovimientos();checkHintPyG();
         };
 
-        window.eliminarMov=function(i){tempMovimientos.splice(i,1);renderTempMovimientos();};
+        window.eliminarMov=function(i){tempMovimientos.splice(i,1);renderTempMovimientos();checkHintPyG();};
+
+        // Verifica si el asiento actual activará reclasificación PyG y muestra aviso
+        function checkHintPyG() {
+            const tipo = document.getElementById('a_tipo').value;
+            const hint = document.getElementById('hint-pyg');
+            if (!hint) return;
+            if (tipo === '2. Ajuste') {
+                const tienePyG = tempMovimientos.some(m => {
+                    const sub = db.subcuentas.find(s => s.codigo === m.subcuenta);
+                    return sub && sub.pyg;
+                });
+                hint.style.display = tienePyG ? 'block' : 'none';
+            } else {
+                hint.style.display = 'none';
+            }
+        }
 
         function renderTempMovimientos(){
             let sd=0,sh=0;const tb=document.getElementById('lista-temp-mov');
@@ -683,19 +737,34 @@
         }
 
         window.guardarAsiento=async function(){
-            const no=document.getElementById('a_no').value,fecha=document.getElementById('a_fecha').value,concepto=document.getElementById('a_concepto').value.trim(),tipo=document.getElementById('a_tipo').value;
+            const no=document.getElementById('a_no').value,fecha=document.getElementById('a_fecha').value,concepto=document.getElementById('a_concepto').value.trim();
+            let tipo=document.getElementById('a_tipo').value;
             if(!no||!fecha||!concepto)return alert("Completa número, fecha y concepto.");
             if(tempMovimientos.length<2)return alert("Se requieren al menos dos movimientos.");
             let sd=0,sh=0;tempMovimientos.forEach(m=>{sd+=m.debe;sh+=m.haber;});
             if(Math.abs(sd-sh)>0.001)return alert(`El asiento no cuadra.\nDebe: ${sd.toFixed(2)}\nHaber: ${sh.toFixed(2)}\nDiferencia: ${Math.abs(sd-sh).toFixed(2)}`);
             if(sd===0)return alert("Los importes no pueden ser cero.");
+
+            // ── Reclasificación automática a AjustePyG ──────────────
+            // Si el tipo es Ajuste y algún movimiento usa una subcuenta PyG → reclasificar
+            if (tipo === '2. Ajuste') {
+                const tienePyG = tempMovimientos.some(m => {
+                    const sub = db.subcuentas.find(s => s.codigo === m.subcuenta);
+                    return sub && sub.pyg;
+                });
+                if (tienePyG) tipo = '3. AjustePyG';
+            }
+
             const id=editIdx.a?editIdx.a:"AST-"+Date.now();
             if(editIdx.a!==null){const idx=db.asientos.findIndex(a=>a.id===editIdx.a);if(idx>-1)db.asientos[idx]={id,no,fecha,concepto,tipo};db.movimientos=db.movimientos.filter(m=>m.idAsiento!==editIdx.a);}
             else db.asientos.push({id,no,fecha,concepto,tipo});
             tempMovimientos.forEach(m=>db.movimientos.push({idAsiento:id,noAsiento:no,subcuenta:m.subcuenta,debe:m.debe,haber:m.haber}));
             await guardarDB();tempMovimientos=[];document.getElementById('a_concepto').value="";editIdx.a=null;
             document.getElementById('label-edit-a').style.display='none';document.getElementById('btn-cancel-a').style.display='none';
-            iniciarAsiento();renderTempMovimientos();window.showSuccess();alert("Asiento registrado correctamente.");
+            document.getElementById('hint-pyg').style.display='none';
+            iniciarAsiento();renderTempMovimientos();window.showSuccess();
+            const tipoLabel = tipo==='3. AjustePyG' ? 'Ajuste P y G (reclasificado automáticamente)' : 'guardado';
+            alert(`Asiento ${tipoLabel} correctamente.`);
         };
 
         window.editarAsiento=function(id){
@@ -842,6 +911,13 @@
             if (!fi || !ff) { alert("Selecciona el período antes de generar el reporte."); return null; }
             return { fi: new Date(fi + 'T00:00:00'), ff: new Date(ff + 'T23:59:59'), fiStr: fi, ffStr: ff };
         }
+        function fmtTipo(tipo) {
+            if (!tipo || tipo.startsWith('1')) return 'Normal';
+            if (tipo.startsWith('2')) return 'Ajuste';
+            if (tipo.startsWith('3')) return '⚖ Ajuste P y G';
+            return tipo;
+        }
+
         function fmtFecha(str) {
             if (!str) return '';
             const [y,m,d] = str.split('-');
@@ -884,6 +960,185 @@
             return map;
         }
 
+        // ══════════════════════════════════════════════════════════
+        // NUEVO SISTEMA DE REPORTES INTERACTIVO
+        // ══════════════════════════════════════════════════════════
+
+        let repTipoActual = 'diario';
+
+        function resetPeriodo() {
+            const y = new Date().getFullYear();
+            document.getElementById('rep_fi').value = `${y}-01-01`;
+            document.getElementById('rep_ff').value = `${y}-12-31`;
+            vistaReporte();
+        }
+        window.resetPeriodo = resetPeriodo;
+
+        window.seleccionarReporte = function(tipo, el) {
+            repTipoActual = tipo;
+            document.querySelectorAll('.rep-pill').forEach(p => p.classList.remove('active'));
+            el.classList.add('active');
+            document.querySelectorAll('.rep-opt').forEach(d => d.style.display = 'none');
+            const opt = document.getElementById('opt-' + tipo);
+            if (opt) opt.style.display = 'block';
+            vistaReporte();
+        };
+
+        window.vistaReporte = function() {
+            const fi = document.getElementById('rep_fi').value;
+            const ff = document.getElementById('rep_ff').value;
+            if (!fi || !ff) return;
+            const fechas = { fi: new Date(fi+'T00:00:00'), ff: new Date(ff+'T23:59:59'), fiStr: fi, ffStr: ff };
+            const tipo   = repTipoActual;
+            const nivelMayor = (document.getElementById('mayor_nivel')||{}).value || 'subcuenta';
+            const nivelHoja  = (document.getElementById('hoja_nivel')||{}).value  || 'subcuenta';
+
+            const titulos = { diario:'Libro Diario', mayor:'Libro Mayor', hoja:'Hoja de Trabajo', catalogo:'Catálogo de Cuentas' };
+            document.getElementById('rep-titulo-inline').textContent = titulos[tipo] || tipo;
+            document.getElementById('rep-periodo-inline').textContent =
+                tipo === 'catalogo' ? '' : `Período: ${fmtFecha(fi)} al ${fmtFecha(ff)}`;
+
+            let resultado;
+            if (tipo === 'diario')   resultado = buildTablaInlineDiario(fechas);
+            if (tipo === 'mayor')    resultado = buildTablaInlineMayor(fechas, nivelMayor);
+            if (tipo === 'hoja')     resultado = buildTablaInlineHoja(fechas, nivelHoja);
+            if (tipo === 'catalogo') resultado = buildTablaInlineCatalogo();
+
+            const contenedor = document.getElementById('rep-tabla-inline');
+            const totalesEl  = document.getElementById('rep-totales-inline');
+            if (!resultado || resultado.vacio) {
+                contenedor.innerHTML = '<div style="padding:32px;text-align:center;color:var(--muted);font-size:0.82rem;">Sin datos en el período seleccionado.</div>';
+                totalesEl.style.display = 'none';
+            } else {
+                contenedor.innerHTML = resultado.html;
+                if (resultado.resumen) { totalesEl.style.display='block'; totalesEl.innerHTML=resultado.resumen; }
+                else totalesEl.style.display = 'none';
+            }
+        };
+
+        function buildTablaInlineDiario(fechas) {
+            const mapA = mapAsientosFecha(fechas);
+            const asientosFiltrados = Object.values(mapA).sort((a,b)=>a.fecha.localeCompare(b.fecha)||Number(a.no)-Number(b.no));
+            if (asientosFiltrados.length===0) return {vacio:true};
+            let rows='', totalD=0, totalH=0;
+            asientosFiltrados.forEach(a => {
+                const movs=db.movimientos.filter(m=>m.idAsiento===a.id);
+                let sumD=0,sumH=0;
+                movs.forEach(m=>{sumD+=Number(m.debe)||0;sumH+=Number(m.haber)||0;});
+                totalD+=sumD;totalH+=sumH;
+                rows+=`<tr class="enc-row"><td colspan="5">Asiento N° ${a.no} — ${fmtFecha(a.fecha)} — ${fmtTipo(a.tipo)}</td></tr>`;
+                rows+=`<tr class="col-head"><td>Cta.Mayor</td><td>Subcuenta</td><td>Nombre</td><td>Debe</td><td>Haber</td></tr>`;
+                movs.forEach(m=>{rows+=`<tr><td>${getPadre(m.subcuenta)}</td><td>${m.subcuenta}</td><td>${getNomSub(m.subcuenta)}</td><td class="num">${fmtMon(m.debe)}</td><td class="num">${fmtMon(m.haber)}</td></tr>`;});
+                rows+=`<tr class="tot-row"><td colspan="3" style="text-align:right;">Sumas:</td><td class="num">${fmtMonZ(sumD)}</td><td class="num">${fmtMonZ(sumH)}</td></tr>`;
+                rows+=`<tr class="glosa-row"><td colspan="5">${a.concepto}</td></tr>`;
+                rows+=`<tr class="spacer-row"><td colspan="5"></td></tr>`;
+            });
+            return {
+                html:`<table><thead><tr><th>Cta.Mayor</th><th>Subcuenta</th><th>Nombre</th><th>Debe</th><th>Haber</th></tr></thead><tbody>${rows}</tbody></table>`,
+                resumen:`${asientosFiltrados.length} asientos &nbsp;|&nbsp; Debe: ${fmtMonZ(totalD)} &nbsp;|&nbsp; Haber: ${fmtMonZ(totalH)}`
+            };
+        }
+
+        function buildTablaInlineMayor(fechas, nivel) {
+            const mapA=mapAsientosFecha(fechas);
+            const grupos={};
+            db.movimientos.forEach(m=>{const ast=mapA[m.idAsiento];if(!ast)return;const clave=(nivel==='cuenta')?getPadre(m.subcuenta):m.subcuenta;if(!grupos[clave])grupos[clave]=[];grupos[clave].push({m,ast});});
+            const claves=Object.keys(grupos).sort();
+            if(claves.length===0)return{vacio:true};
+            let rows='',gtD=0,gtH=0;
+            claves.forEach(clave=>{
+                const entradas=grupos[clave].sort((a,b)=>a.ast.fecha.localeCompare(b.ast.fecha)||Number(a.ast.no)-Number(b.ast.no));
+                const nombre=(nivel==='cuenta')?getNomCuenta(clave):getNomSub(clave);
+                let sumD=0,sumH=0,saldo=0;
+                rows+=`<tr class="enc-row"><td colspan="6">${clave} — ${nombre}</td></tr>`;
+                rows+=`<tr class="col-head"><td>Fecha</td><td>Asiento</td><td>Concepto</td><td>Debe</td><td>Haber</td><td>Saldo</td></tr>`;
+                entradas.forEach(({m,ast})=>{const d=Number(m.debe)||0,h=Number(m.haber)||0;saldo+=d-h;sumD+=d;sumH+=h;const lbl=saldo===0?'—':`${fmtMonZ(Math.abs(saldo))} ${saldo>0?'D':'H'}`;rows+=`<tr><td>${fmtFecha(ast.fecha)}</td><td>${ast.no}</td><td>${ast.concepto}</td><td class="num">${fmtMon(d)}</td><td class="num">${fmtMon(h)}</td><td class="num saldo">${lbl}</td></tr>`;});
+                const sf=saldo===0?'—':`${fmtMonZ(Math.abs(saldo))} ${saldo>0?'D':'H'}`;
+                rows+=`<tr class="tot-row"><td colspan="3" style="text-align:right;">Total:</td><td class="num">${fmtMonZ(sumD)}</td><td class="num">${fmtMonZ(sumH)}</td><td class="num saldo">${sf}</td></tr>`;
+                rows+=`<tr class="spacer-row"><td colspan="6"></td></tr>`;
+                gtD+=sumD;gtH+=sumH;
+            });
+            return {
+                html:`<table><thead><tr><th>Fecha</th><th>Asiento</th><th>Concepto</th><th>Debe</th><th>Haber</th><th>Saldo</th></tr></thead><tbody>${rows}</tbody></table>`,
+                resumen:`${claves.length} cuentas &nbsp;|&nbsp; Debe: ${fmtMonZ(gtD)} &nbsp;|&nbsp; Haber: ${fmtMonZ(gtH)}`
+            };
+        }
+
+        function buildTablaInlineHoja(fechas, nivel) {
+            const mapA=mapAsientosFecha(fechas);
+            const saldos={};
+            db.movimientos.forEach(m=>{const ast=mapA[m.idAsiento];if(!ast)return;const clave=(nivel==='cuenta')?getPadre(m.subcuenta):m.subcuenta;if(!saldos[clave])saldos[clave]=[0,0,0,0,0,0];const d=Number(m.debe)||0,h=Number(m.haber)||0;const tipo=ast.tipo||'1. Normal';if(tipo.startsWith('1')){saldos[clave][0]+=d;saldos[clave][1]+=h;}else if(tipo.startsWith('2')){saldos[clave][2]+=d;saldos[clave][3]+=h;}else if(tipo.startsWith('3')){saldos[clave][4]+=d;saldos[clave][5]+=h;}});
+            const claves=Object.keys(saldos).sort();
+            if(claves.length===0)return{vacio:true};
+            let totals=new Array(12).fill(0),rows='';
+            claves.forEach(clave=>{
+                const s=saldos[clave];
+                const movD=s[0],movH=s[1],netMov=movD-movH;
+                const sNormD=netMov>0?netMov:0,sNormH=netMov<0?Math.abs(netMov):0;
+                const ajD=s[2],ajH=s[3],netAj=netMov+(ajD-ajH);
+                const sAjD=netAj>0?netAj:0,sAjH=netAj<0?Math.abs(netAj):0;
+                const pygD=s[4],pygH=s[5],netFin=netAj+(pygD-pygH);
+                const activo=netFin>0?netFin:0,pasivo=netFin<0?Math.abs(netFin):0;
+                const vals=[movD,movH,sNormD,sNormH,ajD,ajH,sAjD,sAjH,pygD,pygH,activo,pasivo];
+                vals.forEach((v,i)=>{totals[i]+=v;});
+                const nombre=(nivel==='cuenta')?getNomCuenta(clave):getNomSub(clave);
+                const padreCol=(nivel==='cuenta')?'':getPadre(clave);
+                rows+=`<tr><td>${padreCol}</td><td>${clave}</td><td>${nombre}</td>${vals.map(v=>`<td class="num">${fmtMon(v)}</td>`).join('')}</tr>`;
+            });
+            rows+=`<tr class="tot-row"><td colspan="3" style="text-align:right;font-weight:700;">TOTALES</td>${totals.map(v=>`<td class="num">${fmtMonZ(v)}</td>`).join('')}</tr>`;
+            const ths=['Cta.Mayor','Subcuenta','Nombre','Mov.D','Mov.H','Sdo.D','Sdo.H','Aj.D','Aj.H','SAj.D','SAj.H','PyG.D','PyG.H','Activo','Pasivo'];
+            return {
+                html:`<table><thead><tr>${ths.map(h=>`<th>${h}</th>`).join('')}</tr></thead><tbody>${rows}</tbody></table>`,
+                resumen:`${claves.length} cuentas — Activo: ${fmtMonZ(totals[10])} | Pasivo: ${fmtMonZ(totals[11])}`
+            };
+        }
+
+        function buildTablaInlineCatalogo() {
+            let rows='';
+            db.rubros.sort((a,b)=>a.codigo.localeCompare(b.codigo)).forEach(r=>{
+                rows+=`<tr class="enc-row"><td colspan="4">Rubro ${r.codigo} — ${r.nombre}</td></tr>`;
+                db.cuentas.filter(c=>c.rubroPadre===r.codigo).sort((a,b)=>a.codigo.localeCompare(b.codigo)).forEach(c=>{
+                    rows+=`<tr class="col-head"><td>${c.codigo}</td><td colspan="2">${c.nombre}</td><td>${c.nat}</td></tr>`;
+                    db.subcuentas.filter(s=>s.cuentaPadre===c.codigo).sort((a,b)=>a.codigo.localeCompare(b.codigo)).forEach(s=>{
+                        const tags=[s.pyg?'P y G':'',s.inv?'Inv.':'',s.is_iva?'IVA':''].filter(Boolean).join(', ');
+                        rows+=`<tr><td></td><td>${s.codigo}</td><td>${s.nombre}</td><td>${tags}</td></tr>`;
+                    });
+                });
+                rows+=`<tr class="spacer-row"><td colspan="4"></td></tr>`;
+            });
+            if(!rows)return{vacio:true};
+            return {
+                html:`<table><thead><tr><th>Código</th><th>Subcódigo</th><th>Nombre</th><th>Atributos</th></tr></thead><tbody>${rows}</tbody></table>`,
+                resumen:`${db.rubros.length} rubros · ${db.cuentas.length} cuentas · ${db.subcuentas.length} subcuentas`
+            };
+        }
+
+        window.exportarReporteExcel = function() {
+            const fechas=getFechas(); if(!fechas)return;
+            const tipo=repTipoActual;
+            const nivelMayor=(document.getElementById('mayor_nivel')||{}).value||'subcuenta';
+            const nivelHoja=(document.getElementById('hoja_nivel')||{}).value||'subcuenta';
+            let html='',titulo='',filename='';
+            if(tipo==='diario')  {html=buildLibroDiario(fechas);           titulo='Libro Diario';        filename='libro_diario';}
+            if(tipo==='mayor')   {html=buildLibroMayor(fechas,nivelMayor); titulo='Libro Mayor';         filename='libro_mayor';}
+            if(tipo==='hoja')    {html=buildHojaTrabajo(fechas,nivelHoja); titulo='Hoja de Trabajo';     filename='hoja_trabajo';}
+            if(tipo==='catalogo'){html=buildCatalogo();                    titulo='Catálogo de Cuentas'; filename='catalogo_cuentas';}
+            if(html)exportarXLSX(html,titulo,filename+'.xlsx');
+        };
+
+        window.exportarReportePDF = function() {
+            const fechas=getFechas(); if(!fechas)return;
+            const tipo=repTipoActual;
+            const nivelMayor=(document.getElementById('mayor_nivel')||{}).value||'subcuenta';
+            const nivelHoja=(document.getElementById('hoja_nivel')||{}).value||'subcuenta';
+            let html='';
+            if(tipo==='diario')  html=buildLibroDiario(fechas);
+            if(tipo==='mayor')   html=buildLibroMayor(fechas,nivelMayor);
+            if(tipo==='hoja')    html=buildHojaTrabajo(fechas,nivelHoja);
+            if(tipo==='catalogo')html=buildCatalogo();
+            if(html)abrirPDF(html);
+        };
+
         // ── Dispatcher principal ──────────────────────────────────
         window.generarReporte = function(tipo, formato) {
             const fechas = getFechas();
@@ -919,7 +1174,7 @@
                 let sumD = 0, sumH = 0;
                 movs.forEach(m => { sumD += Number(m.debe)||0; sumH += Number(m.haber)||0; });
 
-                rows += `<tr class="enc-row"><td colspan="5">Asiento N° ${a.no} — ${fmtFecha(a.fecha)} — ${a.tipo || 'Normal'}</td></tr>`;
+                rows += `<tr class="enc-row"><td colspan="5">Asiento N° ${a.no} — ${fmtFecha(a.fecha)} — ${fmtTipo(a.tipo)}</td></tr>`;
                 rows += `<tr class="col-head"><td>Cta. Mayor</td><td>Subcuenta</td><td>Nombre</td><td>Debe</td><td>Haber</td></tr>`;
                 movs.forEach(m => {
                     rows += `<tr>
