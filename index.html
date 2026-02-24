@@ -503,6 +503,8 @@
                 <button class="rep-pill active" data-tipo="diario"   onclick="seleccionarReporte('diario',this)">📋 Diario</button>
                 <button class="rep-pill"        data-tipo="mayor"    onclick="seleccionarReporte('mayor',this)">📒 Mayor</button>
                 <button class="rep-pill"        data-tipo="hoja"     onclick="seleccionarReporte('hoja',this)">📊 Hoja Trab.</button>
+                <button class="rep-pill"        data-tipo="resultados" onclick="seleccionarReporte('resultados',this)">📈 Edo. Result.</button>
+                <button class="rep-pill"        data-tipo="balance"  onclick="seleccionarReporte('balance',this)">⚖️ Balance</button>
                 <button class="rep-pill"        data-tipo="catalogo" onclick="seleccionarReporte('catalogo',this)">📁 Catálogo</button>
             </div>
             <!-- Opciones extra por tipo -->
@@ -519,6 +521,34 @@
                     <option value="subcuenta">Subcuenta (detallado)</option>
                     <option value="cuenta">Cuenta Mayor (consolidado)</option>
                 </select>
+            </div>
+            <!-- Opciones Estado de Resultados -->
+            <div id="opt-resultados" class="rep-opt" style="display:none;margin-top:12px;">
+                <label style="font-size:0.72rem;font-weight:700;color:var(--muted);letter-spacing:0.04em;">Método de Inventarios</label>
+                <select id="er_metodo" onchange="vistaReporte()" style="margin-top:6px;">
+                    <option value="PERPETUOS">Perpetuos</option>
+                    <option value="ANALITICO">Analítico</option>
+                </select>
+                <div style="margin-top:10px;">
+                    <label style="font-size:0.72rem;font-weight:700;color:var(--muted);letter-spacing:0.04em;">Configurar Rubros (orden y acción)</label>
+                    <div id="er-config-rubros" style="margin-top:6px;background:#fafaf8;border:1.5px solid var(--border);border-radius:8px;padding:10px;max-height:200px;overflow-y:auto;font-size:0.78rem;"></div>
+                    <p style="font-size:0.7rem;color:var(--muted);margin:4px 0 0;">Los rubros con ef="B" aparecen aquí. Arrastra para ordenar o cambia la acción.</p>
+                </div>
+            </div>
+            <!-- Opciones Balance General -->
+            <div id="opt-balance" class="rep-opt" style="display:none;margin-top:12px;">
+                <label style="font-size:0.72rem;font-weight:700;color:var(--muted);letter-spacing:0.04em;">Clasificar Rubros (ef="A")</label>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:6px;">
+                    <div>
+                        <div style="font-size:0.7rem;font-weight:700;color:var(--accent);margin-bottom:4px;text-align:center;">ACTIVO</div>
+                        <div id="bal-lista-activo" style="background:#eef4fb;border:1.5px solid #c3d9ee;border-radius:8px;padding:8px;min-height:80px;font-size:0.75rem;"></div>
+                    </div>
+                    <div>
+                        <div style="font-size:0.7rem;font-weight:700;color:var(--amber);margin-bottom:4px;text-align:center;">PASIVO + CAPITAL</div>
+                        <div id="bal-lista-pasivo" style="background:#fdf5e6;border:1.5px solid #e8c97a;border-radius:8px;padding:8px;min-height:80px;font-size:0.75rem;"></div>
+                    </div>
+                </div>
+                <p style="font-size:0.7rem;color:var(--muted);margin:6px 0 0;">Toca un rubro para moverlo entre Activo y Pasivo+Capital.</p>
             </div>
         </div>
 
@@ -1017,16 +1047,22 @@
             const nivelMayor = (document.getElementById('mayor_nivel')||{}).value || 'subcuenta';
             const nivelHoja  = (document.getElementById('hoja_nivel')||{}).value  || 'subcuenta';
 
-            const titulos = { diario:'Libro Diario', mayor:'Libro Mayor', hoja:'Hoja de Trabajo', catalogo:'Catálogo de Cuentas' };
+            const titulos = { diario:'Libro Diario', mayor:'Libro Mayor', hoja:'Hoja de Trabajo', catalogo:'Catálogo de Cuentas', resultados:'Estado de Resultados', balance:'Balance General' };
             document.getElementById('rep-titulo-inline').textContent = titulos[tipo] || tipo;
             document.getElementById('rep-periodo-inline').textContent =
                 tipo === 'catalogo' ? '' : `Período: ${fmtFecha(fi)} al ${fmtFecha(ff)}`;
 
+            // Inicializar UIs de configuración cuando se seleccionan
+            if (tipo === 'resultados') inicializarConfigER();
+            if (tipo === 'balance')    inicializarConfigBalance();
+
             let resultado;
-            if (tipo === 'diario')   resultado = buildTablaInlineDiario(fechas);
-            if (tipo === 'mayor')    resultado = buildTablaInlineMayor(fechas, nivelMayor);
-            if (tipo === 'hoja')     resultado = buildTablaInlineHoja(fechas, nivelHoja);
-            if (tipo === 'catalogo') resultado = buildTablaInlineCatalogo();
+            if (tipo === 'diario')     resultado = buildTablaInlineDiario(fechas);
+            if (tipo === 'mayor')      resultado = buildTablaInlineMayor(fechas, nivelMayor);
+            if (tipo === 'hoja')       resultado = buildTablaInlineHoja(fechas, nivelHoja);
+            if (tipo === 'catalogo')   resultado = buildTablaInlineCatalogo();
+            if (tipo === 'resultados') resultado = buildTablaInlineER(fechas);
+            if (tipo === 'balance')    resultado = buildTablaInlineBalance(fechas);
 
             const contenedor = document.getElementById('rep-tabla-inline');
             const totalesEl  = document.getElementById('rep-totales-inline');
@@ -1143,10 +1179,12 @@
             const nivelMayor=(document.getElementById('mayor_nivel')||{}).value||'subcuenta';
             const nivelHoja=(document.getElementById('hoja_nivel')||{}).value||'subcuenta';
             let html='',titulo='',filename='';
-            if(tipo==='diario')  {html=buildLibroDiario(fechas);           titulo='Libro Diario';        filename='libro_diario';}
-            if(tipo==='mayor')   {html=buildLibroMayor(fechas,nivelMayor); titulo='Libro Mayor';         filename='libro_mayor';}
-            if(tipo==='hoja')    {html=buildHojaTrabajo(fechas,nivelHoja); titulo='Hoja de Trabajo';     filename='hoja_trabajo';}
-            if(tipo==='catalogo'){html=buildCatalogo();                    titulo='Catálogo de Cuentas'; filename='catalogo_cuentas';}
+            if(tipo==='diario')      {html=buildLibroDiario(fechas);           titulo='Libro Diario';          filename='libro_diario';}
+            if(tipo==='mayor')       {html=buildLibroMayor(fechas,nivelMayor); titulo='Libro Mayor';           filename='libro_mayor';}
+            if(tipo==='hoja')        {html=buildHojaTrabajo(fechas,nivelHoja); titulo='Hoja de Trabajo';       filename='hoja_trabajo';}
+            if(tipo==='catalogo')    {html=buildCatalogo();                    titulo='Catálogo de Cuentas';   filename='catalogo_cuentas';}
+            if(tipo==='resultados')  {html=buildEstadoResultadosHTML(fechas);  titulo='Estado de Resultados';  filename='estado_resultados';}
+            if(tipo==='balance')     {html=buildBalanceGeneralHTML(fechas);    titulo='Balance General';        filename='balance_general';}
             if(html)exportarXLSX(html,titulo,filename+'.xlsx');
         };
 
@@ -1156,10 +1194,12 @@
             const nivelMayor=(document.getElementById('mayor_nivel')||{}).value||'subcuenta';
             const nivelHoja=(document.getElementById('hoja_nivel')||{}).value||'subcuenta';
             let html='';
-            if(tipo==='diario')  html=buildLibroDiario(fechas);
-            if(tipo==='mayor')   html=buildLibroMayor(fechas,nivelMayor);
-            if(tipo==='hoja')    html=buildHojaTrabajo(fechas,nivelHoja);
-            if(tipo==='catalogo')html=buildCatalogo();
+            if(tipo==='diario')      html=buildLibroDiario(fechas);
+            if(tipo==='mayor')       html=buildLibroMayor(fechas,nivelMayor);
+            if(tipo==='hoja')        html=buildHojaTrabajo(fechas,nivelHoja);
+            if(tipo==='catalogo')    html=buildCatalogo();
+            if(tipo==='resultados')  html=buildEstadoResultadosHTML(fechas);
+            if(tipo==='balance')     html=buildBalanceGeneralHTML(fechas);
             if(html)abrirPDF(html);
         };
 
@@ -1471,6 +1511,411 @@
             ]);
             XLSX.utils.book_append_sheet(wb, meta, 'Info');
             XLSX.writeFile(wb, filename);
+        }
+
+        // ══════════════════════════════════════════════════════════
+        // ESTADO DE RESULTADOS
+        // ══════════════════════════════════════════════════════════
+
+        // Configuración persistente en db.config
+        // db.config.erRubros = [{codigo, accion}]   (orden + acción SUMA/RESTA/COSTO)
+        // db.config.erRubrosCosto = codigo del rubro marcado como COSTO
+
+        function getRubrosER() {
+            // Rubros marcados con ef="B"
+            return db.rubros.filter(r => r.ef && r.ef.includes('B'));
+        }
+
+        function getConfigER() {
+            // Devuelve array ordenado con acciones
+            const rubrosB = getRubrosER();
+            const saved = (db.config && db.config.erRubros) ? db.config.erRubros : [];
+            // Merge: respeta orden guardado, agrega nuevos al final
+            const resultado = [];
+            saved.forEach(s => {
+                const r = rubrosB.find(x => x.codigo === s.codigo);
+                if (r) resultado.push({ ...r, accion: s.accion || 'SUMA' });
+            });
+            rubrosB.forEach(r => {
+                if (!resultado.find(x => x.codigo === r.codigo)) resultado.push({ ...r, accion: 'SUMA' });
+            });
+            return resultado;
+        }
+
+        function guardarConfigER(config) {
+            if (!db.config) db.config = {};
+            db.config.erRubros = config.map(r => ({ codigo: r.codigo, accion: r.accion }));
+            guardarDB();
+        }
+
+        function inicializarConfigER() {
+            const container = document.getElementById('er-config-rubros');
+            if (!container) return;
+            const config = getConfigER();
+            renderConfigERUI(config);
+        }
+
+        function renderConfigERUI(config) {
+            const container = document.getElementById('er-config-rubros');
+            if (!container) return;
+            const acciones = ['SUMA', 'RESTA', 'COSTO'];
+            const colores = { SUMA: '#1a6648', RESTA: '#8b1a1a', COSTO: '#92600a' };
+            let html = config.map((r, i) => `
+                <div style="display:flex;align-items:center;gap:6px;padding:5px 0;border-bottom:1px solid var(--border);" id="er-item-${i}">
+                    <span style="font-size:0.9rem;cursor:pointer;" onclick="erMover(${i},-1)" title="Subir">▲</span>
+                    <span style="font-size:0.9rem;cursor:pointer;" onclick="erMover(${i},1)"  title="Bajar">▼</span>
+                    <span style="flex:1;font-weight:600;">${r.codigo} ${r.nombre}</span>
+                    <select onchange="erCambiarAccion(${i},this.value)" style="width:90px;padding:4px 6px;font-size:0.72rem;border-radius:6px;border:1.5px solid var(--border);color:${colores[r.accion]||'#333'};font-weight:700;">
+                        ${acciones.map(a => `<option value="${a}" ${r.accion===a?'selected':''}>${a}</option>`).join('')}
+                    </select>
+                </div>`).join('');
+            container.innerHTML = html || '<span style="color:var(--muted);">Sin rubros con EF = "B".</span>';
+        }
+
+        window.erMover = function(i, dir) {
+            const config = getConfigER();
+            const j = i + dir;
+            if (j < 0 || j >= config.length) return;
+            [config[i], config[j]] = [config[j], config[i]];
+            guardarConfigER(config);
+            renderConfigERUI(config);
+            vistaReporte();
+        };
+
+        window.erCambiarAccion = function(i, accion) {
+            const config = getConfigER();
+            config[i].accion = accion;
+            guardarConfigER(config);
+            vistaReporte();
+        };
+
+        // Motor de cálculo ER
+        function calcularSaldosSubcuentasER(fIni, fFin) {
+            // Solo asientos tipo "1." (Normal)
+            const mapA = {};
+            db.asientos.forEach(a => {
+                const f = new Date(a.fecha + 'T00:00:00');
+                if (f >= fIni && f <= fFin && (a.tipo||'').startsWith('1')) mapA[a.id] = a;
+            });
+            const saldos = {};
+            db.movimientos.forEach(m => {
+                if (!mapA[m.idAsiento]) return;
+                const sub = m.subcuenta;
+                const d = Number(m.debe)||0, h = Number(m.haber)||0;
+                if (!saldos[sub]) saldos[sub] = { debe:0, haber:0 };
+                saldos[sub].debe  += d;
+                saldos[sub].haber += h;
+            });
+            return saldos;
+        }
+
+        function calcularSaldoCuenta(codCuenta, saldosSub) {
+            // Sumar todas las subcuentas hijas
+            const subs = db.subcuentas.filter(s => s.cuentaPadre === codCuenta);
+            let debe = 0, haber = 0;
+            subs.forEach(s => {
+                const sd = saldosSub[s.codigo];
+                if (sd) { debe += sd.debe; haber += sd.haber; }
+            });
+            return { debe, haber };
+        }
+
+        function calcularRubroNormalER(codRubro, saldosSub, accion) {
+            // Devuelve { cuentas:[{cod,nom,saldo}], total }
+            const cuentasRubro = db.cuentas.filter(c => c.rubroPadre === codRubro);
+            let total = 0;
+            const items = [];
+            cuentasRubro.forEach(c => {
+                const { debe, haber } = calcularSaldoCuenta(c.codigo, saldosSub);
+                let saldo = accion === 'SUMA' ? (haber - debe) : (debe - haber);
+                if (Math.abs(saldo) > 0.001) {
+                    items.push({ cod: c.codigo, nom: c.nombre, saldo });
+                    total += saldo;
+                }
+            });
+            return { items, total };
+        }
+
+        function calcularInventarioInicial(fIni, fFin) {
+            // Replica VBA: asientos tipo "1." Normal, desde siempre hasta fFin (fecha corte = fecha fin del período)
+            // Esto captura asientos de apertura registrados al inicio del mismo ejercicio
+            const mapA = {};
+            db.asientos.forEach(a => {
+                const f = new Date(a.fecha + 'T00:00:00');
+                if (f <= fFin && (a.tipo||'').startsWith('1')) mapA[a.id] = a;
+            });
+            let saldo = 0;
+            const subInv = new Set(db.subcuentas.filter(s => s.inv).map(s => s.codigo));
+            db.movimientos.forEach(m => {
+                if (!mapA[m.idAsiento] || !subInv.has(m.subcuenta)) return;
+                saldo += (Number(m.debe)||0) - (Number(m.haber)||0);
+            });
+            return saldo;
+        }
+
+        function calcularInventarioFinal(fIni, fFin) {
+            // Inv final = asientos tipo "2." (Ajuste) con subcuentas inv, dentro del período
+            const mapA = {};
+            db.asientos.forEach(a => {
+                const f = new Date(a.fecha + 'T00:00:00');
+                if (f >= fIni && f <= fFin && (a.tipo||'').startsWith('2')) mapA[a.id] = a;
+            });
+            let saldo = 0;
+            const subInv = new Set(db.subcuentas.filter(s => s.inv).map(s => s.codigo));
+            db.movimientos.forEach(m => {
+                if (!mapA[m.idAsiento] || !subInv.has(m.subcuenta)) return;
+                saldo += Number(m.debe)||0; // solo el debe del ajuste de inventario final
+            });
+            return saldo;
+        }
+
+        function buildTablaInlineER(fechas) {
+            const config = getConfigER();
+            if (!config.length) return { vacio: true };
+            const saldosSub = calcularSaldosSubcuentasER(fechas.fi, fechas.ff);
+            const metodo = (document.getElementById('er_metodo')||{}).value || 'PERPETUOS';
+            return { html: buildERHtml(config, saldosSub, fechas, metodo, true) };
+        }
+
+        function buildEstadoResultadosHTML(fechas) {
+            const config = getConfigER();
+            const saldosSub = calcularSaldosSubcuentasER(fechas.fi, fechas.ff);
+            const metodo = (document.getElementById('er_metodo')||{}).value || 'PERPETUOS';
+            const tabla = buildERHtml(config, saldosSub, fechas, metodo, false);
+            return wrapTable(`Estado de Resultados (${metodo})`, fechas, tabla);
+        }
+
+        function buildERHtml(config, saldosSub, fechas, metodo, inline) {
+            let rows = '';
+            let utilidadNeta = 0;
+            const fmtV = v => v.toLocaleString('es-MX',{minimumFractionDigits:2,maximumFractionDigits:2});
+
+            config.forEach(rubro => {
+                const { accion, codigo, nombre } = rubro;
+                let items = [], totalRubro = 0;
+
+                if (accion === 'COSTO') {
+                    if (metodo === 'ANALITICO') {
+                        // Costo analítico: Inv.Ini + Compras - Inv.Final
+                        const invIni  = calcularInventarioInicial(fechas.fi, fechas.ff);
+                        const invFin  = calcularInventarioFinal(fechas.fi, fechas.ff);
+                        const { items: compItems, total: compTotal } = calcularRubroNormalER(codigo, saldosSub, 'COSTO');
+                        const totalMerc = invIni + compTotal;
+                        totalRubro = totalMerc - invFin;
+
+                        rows += `<tr class="enc-row"><td colspan="3">${codigo} — ${nombre.toUpperCase()}</td></tr>`;
+                        rows += `<tr><td></td><td>Inventario Inicial</td><td class="num">${fmtV(invIni)}</td></tr>`;
+                        rows += `<tr class="col-head"><td colspan="3">Más: Compras Netas</td></tr>`;
+                        compItems.forEach(it => {
+                            const cls = it.saldo < 0 ? 'style="color:#8b1a1a"' : '';
+                            rows += `<tr><td style="color:#888;font-size:0.72rem">${it.cod}</td><td ${cls}>${it.saldo<0?'(-) ':'   '}${it.nom}</td><td class="num" ${cls}>${fmtV(Math.abs(it.saldo))}</td></tr>`;
+                        });
+                        rows += `<tr><td></td><td style="font-style:italic;">(=) Disponible</td><td class="num" style="border-top:1px solid #ccc">${fmtV(totalMerc)}</td></tr>`;
+                        rows += `<tr><td></td><td style="color:#8b1a1a">(-) Inventario Final</td><td class="num">${fmtV(invFin)}</td></tr>`;
+                        rows += `<tr class="tot-row"><td colspan="2" style="text-align:right;">${nombre} — Costo Neto:</td><td class="num">${fmtV(totalRubro)}</td></tr>`;
+                        rows += `<tr class="spacer-row"><td colspan="3"></td></tr>`;
+                        utilidadNeta -= totalRubro;
+                        return;
+                    } else {
+                        // Perpetuos: igual a RESTA
+                        const r = calcularRubroNormalER(codigo, saldosSub, 'RESTA');
+                        items = r.items; totalRubro = r.total;
+                    }
+                } else {
+                    const r = calcularRubroNormalER(codigo, saldosSub, accion);
+                    items = r.items; totalRubro = r.total;
+                }
+
+                if (items.length === 0) return; // rubro vacío, omitir
+
+                rows += `<tr class="enc-row"><td colspan="3">${codigo} — ${nombre.toUpperCase()}</td></tr>`;
+                items.forEach(it => {
+                    const cls = it.saldo < 0 ? 'style="color:#8b1a1a"' : '';
+                    rows += `<tr><td style="color:#888;font-size:0.72rem">${it.cod}</td><td ${cls}>${it.saldo<0?'(-) ':'   '}${it.nom}</td><td class="num" ${cls}>${fmtV(Math.abs(it.saldo))}</td></tr>`;
+                });
+                const labelTot = accion === 'COSTO' ? `${nombre} — Costo Neto:` : `${nombre} — Importe Neto:`;
+                rows += `<tr class="tot-row"><td colspan="2" style="text-align:right;">${labelTot}</td><td class="num">${fmtV(totalRubro)}</td></tr>`;
+                rows += `<tr class="spacer-row"><td colspan="3"></td></tr>`;
+
+                if (accion === 'SUMA')  utilidadNeta += totalRubro;
+                else                    utilidadNeta -= totalRubro;
+            });
+
+            const esUtilidad = utilidadNeta >= 0;
+            const labelFinal = esUtilidad ? 'UTILIDAD DEL EJERCICIO' : 'PÉRDIDA DEL EJERCICIO';
+            const colorFin   = esUtilidad ? 'background:#c6efce;color:#006100' : 'background:#ffc7ce;color:#9c0006';
+            rows += `<tr><td colspan="3" style="border-top:3px double #1a3c5e;padding:2px;"></td></tr>`;
+            rows += `<tr><td colspan="2" style="text-align:right;font-weight:700;font-size:1rem;">${labelFinal}:</td><td class="num" style="font-weight:700;font-size:1rem;${colorFin}">${fmtV(utilidadNeta)}</td></tr>`;
+
+            return `<table><thead><tr><th>Cuenta</th><th>Descripción</th><th>Importe</th></tr></thead><tbody>${rows}</tbody></table>`;
+        }
+
+        // ══════════════════════════════════════════════════════════
+        // BALANCE GENERAL
+        // ══════════════════════════════════════════════════════════
+
+        function getRubrosBalance() {
+            return db.rubros.filter(r => r.ef && r.ef.includes('A'));
+        }
+
+        function getConfigBalance() {
+            const rubros = getRubrosBalance();
+            const saved = (db.config && db.config.balConfig) ? db.config.balConfig : {};
+            // Por defecto: primeros en Activo, últimos en Pasivo según heurística
+            const activo  = [];
+            const pasivo  = [];
+            rubros.forEach(r => {
+                const lado = saved[r.codigo] || 'activo';
+                if (lado === 'activo') activo.push(r);
+                else pasivo.push(r);
+            });
+            return { activo, pasivo };
+        }
+
+        function guardarConfigBalance(config) {
+            if (!db.config) db.config = {};
+            const map = {};
+            config.activo.forEach(r => map[r.codigo] = 'activo');
+            config.pasivo.forEach(r => map[r.codigo] = 'pasivo');
+            db.config.balConfig = map;
+            guardarDB();
+        }
+
+        function inicializarConfigBalance() {
+            const cfg = getConfigBalance();
+            renderBalanceConfigUI(cfg);
+        }
+
+        function renderBalanceConfigUI(cfg) {
+            const laAct = document.getElementById('bal-lista-activo');
+            const laPas = document.getElementById('bal-lista-pasivo');
+            if (!laAct || !laPas) return;
+            const mkItem = (r, lado) =>
+                `<div style="padding:4px 8px;margin:3px 0;background:#fff;border-radius:6px;border:1px solid #e0e0e0;cursor:pointer;display:flex;justify-content:space-between;align-items:center;" onclick="balMoverRubro('${r.codigo}','${lado}')">
+                    <span style="font-size:0.75rem;font-weight:600;">${r.codigo} ${r.nombre}</span>
+                    <span style="font-size:0.7rem;color:var(--muted);">${lado==='activo'?'→ PAS':'← ACT'}</span>
+                </div>`;
+            laAct.innerHTML = cfg.activo.map(r => mkItem(r,'activo')).join('') || '<span style="color:var(--muted);font-size:0.72rem;">Vacío</span>';
+            laPas.innerHTML = cfg.pasivo.map(r => mkItem(r,'pasivo')).join('') || '<span style="color:var(--muted);font-size:0.72rem;">Vacío</span>';
+        }
+
+        window.balMoverRubro = function(cod, ladoActual) {
+            const cfg = getConfigBalance();
+            if (ladoActual === 'activo') {
+                const idx = cfg.activo.findIndex(r => r.codigo === cod);
+                if (idx > -1) { cfg.pasivo.push(cfg.activo.splice(idx,1)[0]); }
+            } else {
+                const idx = cfg.pasivo.findIndex(r => r.codigo === cod);
+                if (idx > -1) { cfg.activo.push(cfg.pasivo.splice(idx,1)[0]); }
+            }
+            guardarConfigBalance(cfg);
+            renderBalanceConfigUI(cfg);
+            vistaReporte();
+        };
+
+        function calcularSaldosRubros(fIni, fFin) {
+            // Todos los movimientos dentro del período (cualquier tipo)
+            const mapA = {};
+            db.asientos.forEach(a => {
+                const f = new Date(a.fecha + 'T00:00:00');
+                if (f >= fIni && f <= fFin) mapA[a.id] = a;
+            });
+            const saldosSub = {};
+            db.movimientos.forEach(m => {
+                if (!mapA[m.idAsiento]) return;
+                const d = Number(m.debe)||0, h = Number(m.haber)||0;
+                if (!saldosSub[m.subcuenta]) saldosSub[m.subcuenta] = { debe:0, haber:0 };
+                saldosSub[m.subcuenta].debe  += d;
+                saldosSub[m.subcuenta].haber += h;
+            });
+            // Acumular a cuentas y rubros
+            const saldosCuenta = {};
+            const saldosRubro  = {};
+            db.cuentas.forEach(c => {
+                const subs = db.subcuentas.filter(s => s.cuentaPadre === c.codigo);
+                let sd = 0, sh = 0;
+                subs.forEach(s => { const x = saldosSub[s.codigo]; if(x){sd+=x.debe;sh+=x.haber;} });
+                const net = sd - sh;
+                if (Math.abs(net) > 0.001) {
+                    saldosCuenta[c.codigo] = net;
+                    if (!saldosRubro[c.rubroPadre]) saldosRubro[c.rubroPadre] = 0;
+                    saldosRubro[c.rubroPadre] += net;
+                }
+            });
+            return { saldosCuenta, saldosRubro };
+        }
+
+        function buildTablaInlineBalance(fechas) {
+            const cfg = getConfigBalance();
+            const { saldosCuenta, saldosRubro } = calcularSaldosRubros(fechas.fi, fechas.ff);
+            const html = buildBalanceHtml(cfg, saldosCuenta, saldosRubro, true);
+            return { html };
+        }
+
+        function buildBalanceGeneralHTML(fechas) {
+            const cfg = getConfigBalance();
+            const { saldosCuenta, saldosRubro } = calcularSaldosRubros(fechas.fi, fechas.ff);
+            const tabla = buildBalanceHtml(cfg, saldosCuenta, saldosRubro, false);
+            return wrapTable('Balance General', fechas, tabla);
+        }
+
+        function buildBalanceHtml(cfg, saldosCuenta, saldosRubro, inline) {
+            const fmtV = v => v.toLocaleString('es-MX',{minimumFractionDigits:2,maximumFractionDigits:2});
+
+            function buildLado(rubros, signo) {
+                let rows = ''; let totalLado = 0;
+                rubros.forEach(rubro => {
+                    const saldoR = (saldosRubro[rubro.codigo] || 0) * signo;
+                    if (Math.abs(saldoR) < 0.001) return;
+                    rows += `<tr class="enc-row"><td colspan="3">${rubro.codigo} — ${rubro.nombre.toUpperCase()}</td></tr>`;
+                    const cuentas = db.cuentas.filter(c => c.rubroPadre === rubro.codigo);
+                    cuentas.forEach(c => {
+                        const net = (saldosCuenta[c.codigo] || 0) * signo;
+                        if (Math.abs(net) < 0.001) return;
+                        const cls = net < 0 ? 'style="color:#8b1a1a"' : '';
+                        rows += `<tr><td style="color:#888;font-size:0.72rem">${c.codigo}</td><td ${cls}>${net<0?'(-) ':'   '}${c.nombre}</td><td class="num" ${cls}>${fmtV(Math.abs(net))}</td></tr>`;
+                    });
+                    rows += `<tr class="tot-row"><td colspan="2" style="text-align:right;">Total ${rubro.nombre}:</td><td class="num">${fmtV(Math.abs(saldoR))}</td></tr>`;
+                    rows += `<tr class="spacer-row"><td colspan="3"></td></tr>`;
+                    totalLado += Math.abs(saldoR);
+                });
+                return { rows, totalLado };
+            }
+
+            const { rows: rowsAct, totalLado: totAct } = buildLado(cfg.activo, 1);
+            const { rows: rowsPas, totalLado: totPas } = buildLado(cfg.pasivo, -1);
+
+            const cuadra = Math.abs(totAct - totPas) < 1;
+            const estCuadre = cuadra ? 'color:#006100;background:#c6efce' : 'color:#9c0006;background:#ffc7ce';
+
+            // Tabla de dos columnas: Activo | Pasivo+Capital
+            const html = `
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+                <div>
+                    <table style="width:100%">
+                        <thead><tr style="background:#1a3c5e"><th colspan="3" style="color:#fff;text-align:center;padding:8px;font-size:11px;letter-spacing:0.1em">ACTIVO</th></tr>
+                        <tr><th>Cuenta</th><th>Descripción</th><th>Importe</th></tr></thead>
+                        <tbody>${rowsAct}
+                        <tr><td colspan="3" style="border-top:3px double #1a3c5e;"></td></tr>
+                        <tr><td colspan="2" style="text-align:right;font-weight:700;">TOTAL ACTIVO:</td><td class="num" style="font-weight:700;background:#1a3c5e;color:#fff">${fmtV(totAct)}</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div>
+                    <table style="width:100%">
+                        <thead><tr style="background:#c8a96e"><th colspan="3" style="color:#fff;text-align:center;padding:8px;font-size:11px;letter-spacing:0.1em">PASIVO Y CAPITAL</th></tr>
+                        <tr><th>Cuenta</th><th>Descripción</th><th>Importe</th></tr></thead>
+                        <tbody>${rowsPas}
+                        <tr><td colspan="3" style="border-top:3px double #c8a96e;"></td></tr>
+                        <tr><td colspan="2" style="text-align:right;font-weight:700;">TOTAL PASIVO+CAPITAL:</td><td class="num" style="font-weight:700;background:#c8a96e;color:#fff">${fmtV(totPas)}</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div style="margin-top:12px;padding:8px 14px;border-radius:8px;font-weight:700;font-size:0.85rem;text-align:center;${estCuadre}">
+                ${cuadra ? '✓ Balance cuadrado' : `⚠ Diferencia: ${fmtV(Math.abs(totAct - totPas))}`} &nbsp;|&nbsp; Activo: ${fmtV(totAct)} &nbsp;|&nbsp; Pasivo+Capital: ${fmtV(totPas)}
+            </div>`;
+            return html;
         }
 
     </script>
