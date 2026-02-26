@@ -1465,6 +1465,8 @@
                 // Crear nueva — siempre al final
                 const grupo=db.cuentas.filter(c=>c.rubroPadre===p).sort((a,b)=>a.codigo.localeCompare(b.codigo));
                 const posVal=grupo.length;
+                // Asignar _orden a las existentes según su posición actual
+                grupo.forEach((c,i)=>c._orden=i);
                 const suf=document.getElementById('c_cod_suf').value.trim()||"000";
                 const tmpCod=p+suf;
                 const obj={codigo:tmpCod,nombre:nom,rubroPadre:p,nat,_orden:posVal};
@@ -1601,6 +1603,8 @@
             } else {
                 const grupo=db.subcuentas.filter(s=>s.cuentaPadre===p).sort((a,b)=>a.codigo.localeCompare(b.codigo));
                 const posVal=grupo.length;
+                // Asignar _orden a las existentes según su posición actual
+                grupo.forEach((s,i)=>s._orden=i);
                 const suf=document.getElementById('s_cod_suf').value.trim()||"000";
                 const tmpCod=p+suf;
                 const obj={codigo:tmpCod,nombre:nom,cuentaPadre:p,pyg,inv,is_iva,_orden:posVal};
