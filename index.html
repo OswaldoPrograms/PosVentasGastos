@@ -250,19 +250,42 @@
         }
 
         /* ── TABLA INLINE ── */
-        #rep-tabla-inline table { min-width: 500px; }
+        /* ── Tabla inline de reportes ── */
+        #rep-tabla-inline { overflow-x: auto; }
+        #rep-tabla-inline table {
+            width: 100%;
+            table-layout: fixed;
+            border-collapse: collapse;
+        }
+        /* Anchos de columna por tipo de reporte — se sobrescriben por clase en cada tabla */
+        /* Diario / Mayor / Hoja: col-codigo, col-nombre, col-importe */
+        #rep-tabla-inline col.col-codigo  { width: 90px; }
+        #rep-tabla-inline col.col-nombre  { width: auto; }
+        #rep-tabla-inline col.col-fecha   { width: 82px; }
+        #rep-tabla-inline col.col-asiento { width: 54px; }
+        #rep-tabla-inline col.col-num     { width: 90px; }
+        #rep-tabla-inline col.col-saldo   { width: 100px; }
+        #rep-tabla-inline col.col-parcial { width: 80px; }
+
         #rep-tabla-inline th {
             background: #1a3c5e; color: #fff;
             padding: 8px 10px; font-size: 0.65rem; text-transform: uppercase;
-            letter-spacing: 0.08em; white-space: nowrap; position: sticky; top: 0; z-index: 2;
+            letter-spacing: 0.08em; white-space: nowrap;
+            position: sticky; top: 0; z-index: 2;
+            text-align: left;
         }
-        #rep-tabla-inline td { padding: 7px 10px; border-bottom: 1px solid #f2f0ec; font-size: 0.78rem; white-space: nowrap; }
-        #rep-tabla-inline tr.enc-row td  { background: #dce8f5; font-weight: 700; font-size: 0.75rem; color: #0f1117; padding: 7px 10px; }
+        #rep-tabla-inline th.num { text-align: right; }
+        #rep-tabla-inline td {
+            padding: 7px 10px; border-bottom: 1px solid #f2f0ec;
+            font-size: 0.78rem;
+            overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+        }
+        #rep-tabla-inline tr.enc-row td  { background: #dce8f5; font-weight: 700; font-size: 0.75rem; color: #0f1117; padding: 7px 10px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         #rep-tabla-inline tr.col-head td { background: #f0f4f8; font-weight: 700; font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.05em; color: #4b5563; }
         #rep-tabla-inline tr.tot-row  td { background: #f8f4ec; border-top: 2px solid #c8a96e; font-weight: 700; font-size: 0.78rem; }
-        #rep-tabla-inline tr.glosa-row td { font-style: italic; color: #6b7280; font-size: 0.72rem; border-bottom: 2px double #1a3c5e; }
+        #rep-tabla-inline tr.glosa-row td { font-style: italic; color: #6b7280; font-size: 0.72rem; border-bottom: 2px double #1a3c5e; white-space: normal; }
         #rep-tabla-inline tr.spacer-row td { padding: 4px 0; border-bottom: none; }
-        #rep-tabla-inline .num { text-align: right; font-variant-numeric: tabular-nums; }
+        #rep-tabla-inline .num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
         #rep-tabla-inline .saldo { color: var(--accent); font-weight: 600; }
 
         /* ── SEARCHABLE SELECT ── */
@@ -3307,7 +3330,7 @@
                         return a.localeCompare(b);
                     });
                     rows += `<tr class="enc-row"><td colspan="4">Asiento N° ${a.no} — ${fmtFecha(a.fecha)} — ${fmtTipo(a.tipo)}</td></tr>`;
-                    rows += `<tr class="col-head"><td>Cta. Mayor</td><td>Nombre</td><td>Debe</td><td>Haber</td></tr>`;
+                    rows += `<tr class="col-head"><td>Cta. Mayor</td><td>Nombre</td><td class="num">Debe</td><td class="num">Haber</td></tr>`;
                     cuentasSorted.forEach(c => {
                         const tot = byCtaMayor[c];
                         rows += `<tr>
@@ -3332,7 +3355,7 @@
                         grouped[c].push(m);
                     });
                     rows += `<tr class="enc-row"><td colspan="5">Asiento N° ${a.no} — ${fmtFecha(a.fecha)} — ${fmtTipo(a.tipo)}</td></tr>`;
-                    rows += `<tr class="col-head"><td>Cta. Mayor</td><td>Subcuenta / Nombre</td><td style="text-align:right;font-size:0.62rem;">Parcial</td><td>Debe</td><td>Haber</td></tr>`;
+                    rows += `<tr class="col-head"><td>Cta. Mayor</td><td>Subcuenta / Nombre</td><td class="num">Parcial</td><td class="num">Debe</td><td class="num">Haber</td></tr>`;
                     ctaOrder.forEach(c => {
                         const ctaMovs = grouped[c];
                         let ctaD = 0, ctaH = 0;
@@ -3366,7 +3389,7 @@
                 } else {
                     // ── OPCIÓN 2: Solo subcuentas (default) ─────────────────────
                     rows += `<tr class="enc-row"><td colspan="5">Asiento N° ${a.no} — ${fmtFecha(a.fecha)} — ${fmtTipo(a.tipo)}</td></tr>`;
-                    rows += `<tr class="col-head"><td>Cta.Mayor</td><td>Subcuenta</td><td>Nombre</td><td>Debe</td><td>Haber</td></tr>`;
+                    rows += `<tr class="col-head"><td>Cta.Mayor</td><td>Subcuenta</td><td>Nombre</td><td class="num">Debe</td><td class="num">Haber</td></tr>`;
                     movs.forEach(m=>{rows+=`<tr><td>${getPadre(m.subcuenta)}</td><td>${m.subcuenta}</td><td>${getNomSub(m.subcuenta)}</td><td class="num">${fmtMon(m.debe)}</td><td class="num">${fmtMon(m.haber)}</td></tr>`;});
                     rows += `<tr class="tot-row"><td colspan="3" style="text-align:right;">Sumas:</td><td class="num">${fmtMonZ(sumD)}</td><td class="num">${fmtMonZ(sumH)}</td></tr>`;
                     rows += `<tr class="glosa-row"><td colspan="5">${a.concepto}</td></tr>`;
@@ -3374,14 +3397,19 @@
                 }
             });
 
-            const colSpan = (vista === 'cuentas') ? 4 : 5;
-            const thead = (vista === 'cuentas')
-                ? `<tr><th>Cta.Mayor</th><th>Nombre</th><th>Debe</th><th>Haber</th></tr>`
-                : (vista === 'parcial')
-                    ? `<tr><th>Cta.Mayor</th><th>Subcuenta / Nombre</th><th>Parcial</th><th>Debe</th><th>Haber</th></tr>`
-                    : `<tr><th>Cta.Mayor</th><th>Subcuenta</th><th>Nombre</th><th>Debe</th><th>Haber</th></tr>`;
+            let colgroup, thead;
+            if (vista === 'cuentas') {
+                colgroup = `<colgroup><col class="col-codigo"><col class="col-nombre"><col class="col-num"><col class="col-num"></colgroup>`;
+                thead    = `<tr><th>Cta.Mayor</th><th>Nombre</th><th class="num">Debe</th><th class="num">Haber</th></tr>`;
+            } else if (vista === 'parcial') {
+                colgroup = `<colgroup><col class="col-codigo"><col class="col-nombre"><col class="col-parcial"><col class="col-num"><col class="col-num"></colgroup>`;
+                thead    = `<tr><th>Cta.Mayor</th><th>Subcuenta / Nombre</th><th class="num">Parcial</th><th class="num">Debe</th><th class="num">Haber</th></tr>`;
+            } else {
+                colgroup = `<colgroup><col class="col-codigo"><col class="col-codigo"><col class="col-nombre"><col class="col-num"><col class="col-num"></colgroup>`;
+                thead    = `<tr><th>Cta.Mayor</th><th>Subcuenta</th><th>Nombre</th><th class="num">Debe</th><th class="num">Haber</th></tr>`;
+            }
             return {
-                html:`<table><thead>${thead}</thead><tbody>${rows}</tbody></table>`,
+                html:`<table>${colgroup}<thead>${thead}</thead><tbody>${rows}</tbody></table>`,
                 resumen:`${asientosFiltrados.length} asientos &nbsp;|&nbsp; Debe: ${fmtMonZ(totalD)} &nbsp;|&nbsp; Haber: ${fmtMonZ(totalH)}`
             };
         }
@@ -3398,15 +3426,16 @@
                 const nombre=(nivel==='cuenta')?getNomCuenta(clave):getNomSub(clave);
                 let sumD=0,sumH=0,saldo=0;
                 rows+=`<tr class="enc-row"><td colspan="6">${clave} — ${nombre}</td></tr>`;
-                rows+=`<tr class="col-head"><td>Fecha</td><td>Asiento</td><td>Concepto</td><td>Debe</td><td>Haber</td><td>Saldo</td></tr>`;
+                rows+=`<tr class="col-head"><td>Fecha</td><td>Asiento</td><td>Concepto</td><td class="num">Debe</td><td class="num">Haber</td><td class="num">Saldo</td></tr>`;
                 entradas.forEach(({m,ast})=>{const d=Number(m.debe)||0,h=Number(m.haber)||0;saldo+=d-h;sumD+=d;sumH+=h;const lbl=saldo===0?'—':`${fmtMonZ(Math.abs(saldo))} ${saldo>0?'D':'H'}`;rows+=`<tr><td>${fmtFecha(ast.fecha)}</td><td>${ast.no}</td><td>${ast.concepto}</td><td class="num">${fmtMon(d)}</td><td class="num">${fmtMon(h)}</td><td class="num saldo">${lbl}</td></tr>`;});
                 const sf=saldo===0?'—':`${fmtMonZ(Math.abs(saldo))} ${saldo>0?'D':'H'}`;
                 rows+=`<tr class="tot-row"><td colspan="3" style="text-align:right;">Total:</td><td class="num">${fmtMonZ(sumD)}</td><td class="num">${fmtMonZ(sumH)}</td><td class="num saldo">${sf}</td></tr>`;
                 rows+=`<tr class="spacer-row"><td colspan="6"></td></tr>`;
                 gtD+=sumD;gtH+=sumH;
             });
+            const cgMayor = `<colgroup><col class="col-fecha"><col class="col-asiento"><col class="col-nombre"><col class="col-num"><col class="col-num"><col class="col-saldo"></colgroup>`;
             return {
-                html:`<table><thead><tr><th>Fecha</th><th>Asiento</th><th>Concepto</th><th>Debe</th><th>Haber</th><th>Saldo</th></tr></thead><tbody>${rows}</tbody></table>`,
+                html:`<table>${cgMayor}<thead><tr><th>Fecha</th><th>Asiento</th><th>Concepto</th><th class="num">Debe</th><th class="num">Haber</th><th class="num">Saldo</th></tr></thead><tbody>${rows}</tbody></table>`,
                 resumen:`${claves.length} cuentas &nbsp;|&nbsp; Debe: ${fmtMonZ(gtD)} &nbsp;|&nbsp; Haber: ${fmtMonZ(gtH)}`
             };
         }
@@ -3434,8 +3463,10 @@
             });
             rows+=`<tr class="tot-row"><td colspan="3" style="text-align:right;font-weight:700;">TOTALES</td>${totals.map(v=>`<td class="num">${fmtMonZ(v)}</td>`).join('')}</tr>`;
             const ths=['Cta.Mayor','Subcuenta','Nombre','Mov.D','Mov.H','Sdo.D','Sdo.H','Aj.D','Aj.H','SAj.D','SAj.H','PyG.D','PyG.H','Activo','Pasivo'];
+            const cgHoja = `<colgroup><col class="col-codigo"><col class="col-codigo"><col style="width:auto">${Array(12).fill('<col class="col-num">').join('')}</colgroup>`;
+            const thsH = ths.map((h,i) => i>=3 ? `<th class="num">${h}</th>` : `<th>${h}</th>`).join('');
             return {
-                html:`<table><thead><tr>${ths.map(h=>`<th>${h}</th>`).join('')}</tr></thead><tbody>${rows}</tbody></table>`,
+                html:`<table>${cgHoja}<thead><tr>${thsH}</tr></thead><tbody>${rows}</tbody></table>`,
                 resumen:`${claves.length} cuentas — Activo: ${fmtMonZ(totals[10])} | Pasivo: ${fmtMonZ(totals[11])}`
             };
         }
@@ -3572,8 +3603,9 @@
                 rows+=`<tr class="spacer-row"><td colspan="4"></td></tr>`;
             });
             if(!rows)return{vacio:true};
+            const cgCat = `<colgroup><col class="col-codigo"><col class="col-codigo"><col class="col-nombre"><col style="width:80px"></colgroup>`;
             return {
-                html:`<table><thead><tr><th>Código</th><th>Subcódigo</th><th>Nombre</th><th>Atributos</th></tr></thead><tbody>${rows}</tbody></table>`,
+                html:`<table>${cgCat}<thead><tr><th>Código</th><th>Subcódigo</th><th>Nombre</th><th>Atributos</th></tr></thead><tbody>${rows}</tbody></table>`,
                 resumen:`${db.rubros.length} rubros · ${db.cuentas.length} cuentas · ${db.subcuentas.length} subcuentas`
             };
         }
@@ -3752,7 +3784,7 @@
                 let sumD = 0, sumH = 0, saldo = 0;
 
                 rows += `<tr class="enc-row"><td colspan="6">Cuenta: ${clave} — ${nombre}</td></tr>`;
-                rows += `<tr class="col-head"><td>Fecha</td><td>Asiento</td><td>Concepto</td><td>Debe</td><td>Haber</td><td>Saldo</td></tr>`;
+                rows += `<tr class="col-head"><td>Fecha</td><td>Asiento</td><td>Concepto</td><td class="num">Debe</td><td class="num">Haber</td><td class="num">Saldo</td></tr>`;
 
                 entradas.forEach(({ m, ast }) => {
                     const d = Number(m.debe) || 0;
