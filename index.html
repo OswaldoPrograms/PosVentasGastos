@@ -130,6 +130,7 @@
         .btn-primary:hover { box-shadow: 0 4px 16px rgba(15,17,23,0.3); }
         .btn-secondary { background: var(--card); color: var(--ink); border: 1.5px solid var(--border); }
         .btn-ghost { background: transparent; color: var(--muted); border: 1.5px solid var(--border); font-size: 0.82rem; }
+        .btn-arrow-ready { background: var(--amber-lt) !important; color: var(--amber) !important; border-color: #f0d08a !important; transform: scale(1.18); transition: background 0.15s, color 0.15s, transform 0.15s; }
         .btn-danger { background: var(--red-lt); color: var(--red); border: 1.5px solid #e8b4b4; }
         .btn-success { background: var(--green-lt); color: var(--green); border: 1.5px solid #a7d9c0; }
         .btn-blue { background: #e8f0f8; color: var(--accent); border: 1.5px solid #b8cfe0; }
@@ -1445,14 +1446,19 @@
                         db.movimientos.forEach(m=>{if(m.subcuenta&&m.subcuenta.startsWith(oldCod))m.subcuenta=newCod+m.subcuenta.slice(oldCod.length);});
                     }
                 } else if(p!==obj.rubroPadre){
-                    // Si cambió el rubro padre sin código manual, actualizar el prefijo del código
+                    // Cambió el rubro padre sin código manual: mover al final del rubro destino
                     const oldCod=obj.codigo;
-                    const newCod=p+oldCod.slice(obj.rubroPadre.length);
+                    const oldRubro=obj.rubroPadre;
+                    const grupoDestino=db.cuentas.filter(c=>c.rubroPadre===p&&c.codigo!==oldCod);
+                    const nextNum=grupoDestino.length+1;
+                    const newCod=p+String(nextNum).padStart(3,'0');
                     if(!vc(db.cuentas,newCod,editIdx.c)){showError("Ese código ya existe en el nuevo rubro.");return;}
                     obj.codigo=newCod;
                     obj.rubroPadre=p;
                     db.subcuentas.forEach(s=>{if(s.cuentaPadre===oldCod){s.cuentaPadre=newCod;s.codigo=newCod+s.codigo.slice(oldCod.length);}});
                     db.movimientos.forEach(m=>{if(m.subcuenta&&m.subcuenta.startsWith(oldCod))m.subcuenta=newCod+m.subcuenta.slice(oldCod.length);});
+                    // Renumerar huecos en el rubro de origen
+                    renumerarCuentas(oldRubro);
                 }
                 await guardarDB();finalizar('c');
             } else {
@@ -1493,10 +1499,31 @@
             switchWin('win-cuentas',document.querySelectorAll('.tab-item')[1]);
             // Asignar padre DESPUÉS de switchWin/renderAll para que no se pierda la selección
             setTimeout(function(){
-                ssGet('c_padre')=x.rubroPadre;
+                ssSet('c_padre', x.rubroPadre);
                 sugerirCta();
             },0);
         };
+        /* ── DOBLE CLIC PARA FLECHAS DE REORDEN ── */
+        const _arrowPending = {};
+        window.arrowClick = function(btn, action) {
+            const key = btn.dataset.arrowKey;
+            if (_arrowPending[key]) {
+                // Segundo clic: ejecutar
+                clearTimeout(_arrowPending[key].timer);
+                delete _arrowPending[key];
+                btn.classList.remove('btn-arrow-ready');
+                action();
+            } else {
+                // Primer clic: armar espera
+                btn.classList.add('btn-arrow-ready');
+                const timer = setTimeout(() => {
+                    btn.classList.remove('btn-arrow-ready');
+                    delete _arrowPending[key];
+                }, 600);
+                _arrowPending[key] = { timer };
+            }
+        };
+
         window.moverCuenta=async function(i,dir){
             const c=db.cuentas[i];const p=c.rubroPadre;
             const grupo=db.cuentas.map((x,idx)=>({...x,_gi:idx})).filter(x=>x.rubroPadre===p).sort((a,b)=>a.codigo.localeCompare(b.codigo));
@@ -1556,6 +1583,19 @@
                         const oldCod=obj.codigo;obj.codigo=newCod;obj.cuentaPadre=p;
                         db.movimientos.forEach(m=>{if(m.subcuenta===oldCod)m.subcuenta=newCod;});
                     }
+                } else if(p!==obj.cuentaPadre){
+                    // Cambió la cuenta padre sin código manual: mover al final de la nueva cuenta
+                    const oldCod=obj.codigo;
+                    const oldPadre=obj.cuentaPadre;
+                    const grupoNuevo=db.subcuentas.filter(s=>s.cuentaPadre===p&&s.codigo!==oldCod);
+                    const nextNum=grupoNuevo.length+1;
+                    const newCod=p+String(nextNum).padStart(3,'0');
+                    if(!vc(db.subcuentas,newCod,editIdx.s)){showError("Ese código ya existe en la cuenta destino.");return;}
+                    obj.codigo=newCod;
+                    obj.cuentaPadre=p;
+                    db.movimientos.forEach(m=>{if(m.subcuenta===oldCod)m.subcuenta=newCod;});
+                    // Renumerar huecos en la cuenta de origen
+                    renumerarSubcuentas(oldPadre);
                 }
                 await guardarDB();finalizar('s');
             } else {
@@ -1588,7 +1628,7 @@
             switchWin('win-subs',document.querySelectorAll('.tab-item')[2]);
             // Asignar padre DESPUÉS de switchWin/renderAll para que no se pierda la selección
             setTimeout(function(){
-                ssGet('s_padre')=x.cuentaPadre;
+                ssSet('s_padre', x.cuentaPadre);
                 sugerirSub();
             },0);
         };
@@ -2213,7 +2253,7 @@
                 let rows = db.cuentas.map((c, i) => ({...c, _i: i})).sort((a,b)=>a.codigo.localeCompare(b.codigo));
                 if (q) rows = rows.filter(c => c.codigo.toLowerCase().includes(q) || c.nombre.toLowerCase().includes(q));
                 if (rFil) rows = rows.filter(c => c.rubroPadre === rFil);
-                const fR = (cod, nom, i) => `<tr><td class="td-code">${cod}</td><td>${nom}</td><td><div class="action-btns"><button class="btn-icon btn-ghost" style="font-size:0.7rem;padding:4px 6px;" onclick="moverCuenta(${i},-1)" title="Subir">↑</button><button class="btn-icon btn-ghost" style="font-size:0.7rem;padding:4px 6px;" onclick="moverCuenta(${i},1)" title="Bajar">↓</button></div></td><td><div class="action-btns"><button class="btn-icon btn-edit-icon" onclick="editarC(${i})">✏</button><button class="btn-icon btn-del-icon" onclick="eliminarC(${i})">🗑</button></div></td></tr>`;
+                const fR = (cod, nom, i) => `<tr><td class="td-code">${cod}</td><td>${nom}</td><td><div class="action-btns"><button class="btn-icon btn-ghost" data-arrow-key="c-${i}-up" style="font-size:0.7rem;padding:4px 6px;" onclick="arrowClick(this,()=>moverCuenta(${i},-1))" title="Toca 2 veces para subir">↑</button><button class="btn-icon btn-ghost" data-arrow-key="c-${i}-dn" style="font-size:0.7rem;padding:4px 6px;" onclick="arrowClick(this,()=>moverCuenta(${i},1))" title="Toca 2 veces para bajar">↓</button></div></td><td><div class="action-btns"><button class="btn-icon btn-edit-icon" onclick="editarC(${i})">✏</button><button class="btn-icon btn-del-icon" onclick="eliminarC(${i})">🗑</button></div></td></tr>`;
                 document.getElementById('lista-c').innerHTML = rows.map(r => fR(r.codigo, r.nombre, r._i)).join('') || '<tr class="empty-row"><td colspan="4">Sin resultados</td></tr>';
                 document.getElementById('datos-c-count').textContent = `(${rows.length} de ${db.cuentas.length})`;
 
@@ -2227,7 +2267,7 @@
                 if (sTagActivo === 'inv') rows = rows.filter(s => s.inv);
                 if (sTagActivo === 'iva') rows = rows.filter(s => s.is_iva);
                 const badges = s => [s.pyg?'<span class="clasif-badge clasif-pyg">PyG</span>':'', s.inv?'<span class="clasif-badge clasif-inv">Inv</span>':'', s.is_iva?'<span class="clasif-badge clasif-iva">IVA</span>':''].join('');
-                const fR = (cod, nom, clasif, i) => `<tr><td class="td-code">${cod}</td><td>${nom}</td><td style="white-space:nowrap;">${clasif}</td><td><div class="action-btns"><button class="btn-icon btn-ghost" style="font-size:0.7rem;padding:4px 6px;" onclick="moverSubcuenta(${i},-1)" title="Subir">↑</button><button class="btn-icon btn-ghost" style="font-size:0.7rem;padding:4px 6px;" onclick="moverSubcuenta(${i},1)" title="Bajar">↓</button></div></td><td><div class="action-btns"><button class="btn-icon btn-edit-icon" onclick="editarS(${i})">✏</button><button class="btn-icon btn-del-icon" onclick="eliminarS(${i})">🗑</button></div></td></tr>`;
+                const fR = (cod, nom, clasif, i) => `<tr><td class="td-code">${cod}</td><td>${nom}</td><td style="white-space:nowrap;">${clasif}</td><td><div class="action-btns"><button class="btn-icon btn-ghost" data-arrow-key="s-${i}-up" style="font-size:0.7rem;padding:4px 6px;" onclick="arrowClick(this,()=>moverSubcuenta(${i},-1))" title="Toca 2 veces para subir">↑</button><button class="btn-icon btn-ghost" data-arrow-key="s-${i}-dn" style="font-size:0.7rem;padding:4px 6px;" onclick="arrowClick(this,()=>moverSubcuenta(${i},1))" title="Toca 2 veces para bajar">↓</button></div></td><td><div class="action-btns"><button class="btn-icon btn-edit-icon" onclick="editarS(${i})">✏</button><button class="btn-icon btn-del-icon" onclick="eliminarS(${i})">🗑</button></div></td></tr>`;
                 document.getElementById('lista-s').innerHTML = rows.map(r => fR(r.codigo, r.nombre, badges(r), r._i)).join('') || '<tr class="empty-row"><td colspan="5">Sin resultados</td></tr>';
                 document.getElementById('datos-s-count').textContent = `(${rows.length} de ${db.subcuentas.length})`;
 
