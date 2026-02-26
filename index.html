@@ -1289,15 +1289,16 @@
 
     <!-- ══ MULTI-USUARIO JS (no module) ══ -->
     <script>
-        const UM_KEY = 'contaapp_usuarios_v1';
+        // ── Usuario ACTIVO: sólo en localStorage (cada dispositivo recuerda el suyo) ──
         const UM_ACTIVO_KEY = 'contaapp_usuario_activo_v1';
 
-        function umGetUsuarios() {
-            try { return JSON.parse(localStorage.getItem(UM_KEY) || '[]'); } catch(e) { return []; }
-        }
-        function umSetUsuarios(arr) { localStorage.setItem(UM_KEY, JSON.stringify(arr)); }
-        function umGetActivo()      { return localStorage.getItem(UM_ACTIVO_KEY) || null; }
-        function umSetActivo(id)    { localStorage.setItem(UM_ACTIVO_KEY, id); }
+        // Lista de usuarios compartida: viene de Firebase via window._umUsuariosFirebase
+        // (se actualiza en tiempo real desde el módulo)
+        window._umUsuariosFirebase = [];   // [ { id, nombre } ]
+
+        function umGetUsuarios() { return window._umUsuariosFirebase || []; }
+        function umGetActivo()   { return localStorage.getItem(UM_ACTIVO_KEY) || null; }
+        function umSetActivo(id) { localStorage.setItem(UM_ACTIVO_KEY, id); }
 
         function umGetNombreActivo() {
             const id = umGetActivo();
@@ -1310,26 +1311,25 @@
             return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
         }
 
+        // Crear usuario: delega al módulo Firebase
         function umCrearUsuario() {
             const input = document.getElementById('um-new-name');
             const nombre = (input.value || '').trim();
             if (!nombre) { input.focus(); return; }
-            const usuarios = umGetUsuarios();
-            const slug = nombre.toLowerCase().replace(/[^a-z0-9]/g,'_').substring(0,20);
-            const id = 'u_' + Date.now() + '_' + slug;
-            usuarios.push({ id, nombre });
-            umSetUsuarios(usuarios);
             input.value = '';
-            umRenderLista();
-            if (usuarios.length === 1) umSeleccionar(id);
+            if (window._umFirebaseCrear) {
+                window._umFirebaseCrear(nombre);
+            } else {
+                alert('Aún conectando con Firebase, espera un momento.');
+            }
         }
 
+        // Eliminar usuario: delega al módulo Firebase
         function umEliminar(id) {
-            if (!confirm('¿Eliminar esta base de datos del dispositivo?\nLos datos en Firebase NO se borran.')) return;
-            const usuarios = umGetUsuarios().filter(u => u.id !== id);
-            umSetUsuarios(usuarios);
-            if (umGetActivo() === id) localStorage.removeItem(UM_ACTIVO_KEY);
-            umRenderLista();
+            if (!confirm('¿Eliminar esta base de datos para todos?\n⚠ Esta acción no se puede deshacer.')) return;
+            if (window._umFirebaseEliminar) {
+                window._umFirebaseEliminar(id);
+            }
         }
 
         function umRenderLista() {
@@ -1337,6 +1337,12 @@
             if (!lista) return;
             const usuarios = umGetUsuarios();
             const activo   = umGetActivo();
+
+            // Loading state
+            if (window._umCargando) {
+                lista.innerHTML = '<div class="um-empty" style="color:var(--accent-2);">⏳ Cargando bases de datos…</div>';
+                return;
+            }
             if (usuarios.length === 0) {
                 lista.innerHTML = '<div class="um-empty">Sin bases de datos. Crea una abajo.</div>';
                 return;
@@ -1350,7 +1356,7 @@
                         + '<div class="um-name">' + escHtml(u.nombre)
                             + (isActivo ? ' <span class="um-activo-badge">activo</span>' : '')
                         + '</div>'
-                        + '<div class="um-id-text">ID: ' + u.id.substring(0,24) + '…</div>'
+                        + '<div class="um-id-text">' + u.id.substring(0,26) + '…</div>'
                     + '</div>'
                     + '<button class="um-del-btn" onclick="event.stopPropagation();umEliminar(\'' + u.id + '\')" title="Eliminar">🗑</button>'
                 + '</div>';
@@ -1363,7 +1369,6 @@
             if (window._umCambiarUsuario) {
                 window._umCambiarUsuario(id);
             } else {
-                // Module not ready yet — retry after it loads
                 window._umPendingUserId = id;
             }
         }
@@ -1680,8 +1685,67 @@
             arrancarListeners(userId);
         };
 
+        // ── Directorio de usuarios en Firebase (compartido por todos) ──────
+        const DIRECTORIO_RUTA = 'directorio/usuarios';
+        let _unsubscribeDirectorio = null;
+
+        function arrancarDirectorio() {
+            window._umCargando = true;
+            _unsubscribeDirectorio = onValue(ref(fireDB, DIRECTORIO_RUTA), (snap) => {
+                const d = snap.val();
+                const lista = d ? Object.values(d) : [];
+                // Ordenar por nombre
+                lista.sort((a, b) => (a.nombre||'').localeCompare(b.nombre||''));
+                window._umUsuariosFirebase = lista;
+                window._umCargando = false;
+                umRenderLista();         // Actualiza el modal si está abierto
+                actualizarHeaderUsuario(); // Refresca nombre en header por si cambió
+            }, (err) => {
+                console.error('Error directorio:', err);
+                window._umCargando = false;
+                umRenderLista();
+            });
+        }
+
+        // Crear usuario → escribe en Firebase directorio
+        window._umFirebaseCrear = async function(nombre) {
+            const slug = nombre.toLowerCase().replace(/[^a-z0-9]/g,'_').substring(0,20);
+            const id   = 'u_' + Date.now() + '_' + slug;
+            try {
+                await set(ref(fireDB, DIRECTORIO_RUTA + '/' + id), { id, nombre });
+                // Auto-seleccionar si no hay ninguno activo o es el primero
+                const activo = umGetActivo();
+                const existentes = umGetUsuarios();
+                if (!activo || existentes.length === 0) {
+                    umSeleccionar(id);
+                }
+            } catch(e) {
+                alert('Error al crear: ' + e.message);
+            }
+        };
+
+        // Eliminar usuario del directorio Firebase
+        window._umFirebaseEliminar = async function(id) {
+            try {
+                await remove(ref(fireDB, DIRECTORIO_RUTA + '/' + id));
+                // Si era el activo, limpiar selección local
+                if (umGetActivo() === id) {
+                    localStorage.removeItem('contaapp_usuario_activo_v1');
+                    actualizarHeaderUsuario();
+                    // Mostrar selector
+                    umRenderLista();
+                    document.getElementById('user-modal-overlay').classList.remove('hidden');
+                }
+            } catch(e) {
+                alert('Error al eliminar: ' + e.message);
+            }
+        };
+
         // ── Arranque inicial ──────────────────────────────────────
         (function inicioMultiUsuario() {
+            // Primero arrancar el directorio compartido
+            arrancarDirectorio();
+
             // Handle case where umSeleccionar was called before module loaded
             const pendingId = window._umPendingUserId;
             if (pendingId) {
@@ -1693,6 +1757,7 @@
             const userId = umGetActivo();
             if (!userId) {
                 document.getElementById('loading-overlay').classList.add('hidden');
+                window._umCargando = true;
                 umRenderLista();
                 document.getElementById('user-modal-overlay').classList.remove('hidden');
                 actualizarHeaderUsuario();
