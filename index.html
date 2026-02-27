@@ -917,114 +917,264 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
     <!-- ══ REPORTES ══ -->
-    <div id="win-reportes" class="window">
-        <div class="section-header">
-            <div class="section-number">Módulo 05</div>
-            <h1 class="section-title">Reportes</h1>
-        </div>
+    <div id="win-reportes" class="window" style="padding:0;">
 
-        <!-- Período -->
-        <div class="card">
-            <div class="card-title">Período</div>
-            <div class="two-col">
-                <div class="form-group"><label>Fecha Inicial</label><input type="date" id="rep_fi" onchange="vistaReporte()"></div>
-                <div class="form-group"><label>Fecha Final</label><input type="date" id="rep_ff" onchange="vistaReporte()"></div>
+        <!-- BARRA SUPERIOR COMPACTA -->
+        <div id="rep-topbar" style="
+            background:var(--card);
+            border-bottom:1px solid var(--border);
+            padding:10px 14px;
+            position:sticky; top:56px; z-index:50;
+            box-shadow:0 2px 8px rgba(15,17,23,0.06);
+        ">
+            <!-- Fila 1: título + toggle config + acciones export -->
+            <div style="display:flex;align-items:center;gap:8px;">
+                <div style="flex:1;min-width:0;">
+                    <div style="font-size:0.6rem;font-weight:700;color:var(--accent-2);letter-spacing:0.14em;text-transform:uppercase;">Módulo de Reportes</div>
+                    <div id="rep-topbar-titulo" style="font-family:'DM Serif Display',serif;font-size:1.05rem;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Libro Diario</div>
+                </div>
+                <button onclick="repToggleConfig()" id="rep-cfg-toggle-btn" style="
+                    background:var(--surface);border:1.5px solid var(--border);border-radius:8px;
+                    padding:7px 11px;font-size:0.78rem;font-weight:600;color:var(--muted);
+                    cursor:pointer;display:flex;align-items:center;gap:5px;white-space:nowrap;
+                    width:auto;margin:0;font-family:'DM Sans',sans-serif;
+                    transition:all 0.15s;
+                " title="Mostrar/ocultar configuración">
+                    <span id="rep-cfg-icon">⚙️</span>
+                    <span id="rep-cfg-label">Configurar</span>
+                </button>
+                <button class="btn-success" style="margin:0;width:auto;padding:8px 12px;font-size:0.8rem;" onclick="exportarReporteExcel()" title="Exportar Excel">📗</button>
+                <button class="btn-blue"    style="margin:0;width:auto;padding:8px 12px;font-size:0.8rem;" onclick="exportarReportePDF()" title="Exportar PDF">📄</button>
             </div>
-            <button id="btn-reset-periodo" class="btn-ghost" style="font-size:0.78rem;padding:8px 12px;width:auto;margin:0;" onclick="resetPeriodo()">↺ Ejercicio completo</button>
-        </div>
 
-        <!-- Tipo de reporte — pills -->
-        <div class="card" style="padding:14px;">
-            <div class="card-title" style="margin-bottom:12px;">Tipo de Reporte</div>
-            <div id="rep-pills" style="display:flex;flex-wrap:wrap;gap:7px;">
-                <button class="rep-pill active" data-tipo="diario"   onclick="seleccionarReporte('diario',this)">📋 Diario</button>
-                <button class="rep-pill"        data-tipo="mayor"    onclick="seleccionarReporte('mayor',this)">📒 Mayor</button>
-                <button class="rep-pill"        data-tipo="hoja"     onclick="seleccionarReporte('hoja',this)">📊 Hoja Trab.</button>
+            <!-- Fila 2: pills de tipo (siempre visibles, compactas) -->
+            <div id="rep-pills" style="display:flex;flex-wrap:wrap;gap:5px;margin-top:8px;">
+                <button class="rep-pill active" data-tipo="diario"     onclick="seleccionarReporte('diario',this)">📋 Diario</button>
+                <button class="rep-pill"        data-tipo="mayor"      onclick="seleccionarReporte('mayor',this)">📒 Mayor</button>
+                <button class="rep-pill"        data-tipo="hoja"       onclick="seleccionarReporte('hoja',this)">📊 Hoja Trab.</button>
                 <button class="rep-pill"        data-tipo="resultados" onclick="seleccionarReporte('resultados',this)">📈 Edo. Result.</button>
-                <button class="rep-pill"        data-tipo="balance"  onclick="seleccionarReporte('balance',this)">⚖️ Balance</button>
-                <button class="rep-pill"        data-tipo="catalogo" onclick="seleccionarReporte('catalogo',this)">📁 Catálogo</button>
-                <button class="rep-pill"        data-tipo="kardex"   onclick="seleccionarReporte('kardex',this)" id="pill-kardex" style="display:none;">📦 Kardex</button>
-            </div>
-            <!-- Opciones extra por tipo -->
-            <div id="opt-diario" class="rep-opt" style="display:block;margin-top:12px;">
-                <label style="font-size:0.72rem;font-weight:700;color:var(--muted);letter-spacing:0.04em;">Vista del asiento</label>
-                <select id="diario_vista" onchange="vistaReporte()" style="margin-top:6px;">
-                    <option value="subcuentas">Subcuentas (detalle completo)</option>
-                    <option value="cuentas">Solo Cuenta Mayor (consolidado)</option>
-                    <option value="parcial">Parcial — subcuentas indentadas + total en cuenta</option>
-                </select>
-            </div>
-            <div id="opt-mayor" class="rep-opt" style="display:none;margin-top:12px;">
-                <label style="font-size:0.72rem;font-weight:700;color:var(--muted);letter-spacing:0.04em;">Agrupar por</label>
-                <select id="mayor_nivel" onchange="vistaReporte()" style="margin-top:6px;">
-                    <option value="subcuenta">Subcuenta (detallado)</option>
-                    <option value="cuenta">Cuenta Mayor (consolidado)</option>
-                </select>
-            </div>
-            <div id="opt-hoja" class="rep-opt" style="display:none;margin-top:12px;">
-                <label style="font-size:0.72rem;font-weight:700;color:var(--muted);letter-spacing:0.04em;">Agrupar por</label>
-                <select id="hoja_nivel" onchange="vistaReporte()" style="margin-top:6px;">
-                    <option value="subcuenta">Subcuenta (detallado)</option>
-                    <option value="cuenta">Cuenta Mayor (consolidado)</option>
-                </select>
-            </div>
-            <!-- Opciones Kardex -->
-            <div id="opt-kardex" class="rep-opt" style="display:none;margin-top:12px;">
-                <label style="font-size:0.72rem;font-weight:700;color:var(--muted);letter-spacing:0.04em;">Subcuenta de Inventario</label>
-                <select id="kardex_sub_sel" onchange="vistaReporte()" style="margin-top:6px;">
-                    <option value="">— Todas —</option>
-                </select>
-            </div>
-            <!-- Opciones Estado de Resultados -->
-            <div id="opt-resultados" class="rep-opt" style="display:none;margin-top:12px;">
-                <label style="font-size:0.72rem;font-weight:700;color:var(--muted);letter-spacing:0.04em;">Método de Inventarios</label>
-                <select id="er_metodo" onchange="vistaReporte()" style="margin-top:6px;">
-                    <option value="PERPETUOS">Perpetuos</option>
-                    <option value="ANALITICO">Analítico</option>
-                </select>
-                <div style="margin-top:10px;">
-                    <label style="font-size:0.72rem;font-weight:700;color:var(--muted);letter-spacing:0.04em;">Configurar Rubros (orden y acción)</label>
-                    <div id="er-config-rubros" style="margin-top:6px;background:#fafaf8;border:1.5px solid var(--border);border-radius:8px;padding:10px;max-height:200px;overflow-y:auto;font-size:0.78rem;"></div>
-                    <p style="font-size:0.7rem;color:var(--muted);margin:4px 0 0;">Los rubros con ef="B" aparecen aquí. Arrastra para ordenar o cambia la acción.</p>
-                </div>
-            </div>
-            <!-- Opciones Balance General -->
-            <div id="opt-balance" class="rep-opt" style="display:none;margin-top:12px;">
-                <label style="font-size:0.72rem;font-weight:700;color:var(--muted);letter-spacing:0.04em;">Clasificar Rubros (ef="A")</label>
-                <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:6px;">
-                    <div>
-                        <div style="font-size:0.7rem;font-weight:700;color:var(--accent);margin-bottom:4px;text-align:center;">ACTIVO</div>
-                        <div id="bal-lista-activo" style="background:#eef4fb;border:1.5px solid #c3d9ee;border-radius:8px;padding:8px;min-height:80px;font-size:0.75rem;"></div>
-                    </div>
-                    <div>
-                        <div style="font-size:0.7rem;font-weight:700;color:var(--amber);margin-bottom:4px;text-align:center;">PASIVO + CAPITAL</div>
-                        <div id="bal-lista-pasivo" style="background:#fdf5e6;border:1.5px solid #e8c97a;border-radius:8px;padding:8px;min-height:80px;font-size:0.75rem;"></div>
-                    </div>
-                </div>
-                <p style="font-size:0.7rem;color:var(--muted);margin:6px 0 0;">Toca un rubro para moverlo entre Activo y Pasivo+Capital.</p>
+                <button class="rep-pill"        data-tipo="balance"    onclick="seleccionarReporte('balance',this)">⚖️ Balance</button>
+                <button class="rep-pill"        data-tipo="catalogo"   onclick="seleccionarReporte('catalogo',this)">📁 Catálogo</button>
+                <button class="rep-pill"        data-tipo="kardex"     onclick="seleccionarReporte('kardex',this)" id="pill-kardex" style="display:none;">📦 Kardex</button>
             </div>
         </div>
 
-        <!-- Acciones -->
-        <div style="display:flex;gap:8px;margin-bottom:16px;">
-            <button class="btn-success" style="flex:1;margin:0;" onclick="exportarReporteExcel()">📗 Excel</button>
-            <button class="btn-blue"    style="flex:1;margin:0;" onclick="exportarReportePDF()">📄 PDF</button>
-        </div>
-
-        <!-- Tabla inline -->
-        <div class="card" style="padding:0;overflow:hidden;">
-            <div id="rep-header-inline" style="background:var(--accent);color:#fff;padding:14px 16px;">
-                <div style="font-size:0.7rem;opacity:0.85;font-weight:700;letter-spacing:0.05em;text-transform:uppercase;" id="rep-empresa-inline"></div>
-                <div style="font-family:'DM Serif Display',serif;font-size:1rem;margin-top:1px;" id="rep-titulo-inline">Libro Diario</div>
-            </div>
-            <div id="rep-tabla-inline" style="overflow-x:auto;max-height:60vh;overflow-y:auto;">
-                <div style="padding:32px;text-align:center;color:var(--muted);font-size:0.82rem;">
-                    Selecciona un período y tipo de reporte para ver los datos aquí.
+        <!-- PANEL DE CONFIGURACIÓN (colapsable) -->
+        <div id="rep-config-panel" style="
+            background:#f8f7f4;
+            border-bottom:1px solid var(--border);
+            overflow:hidden;
+            max-height:0;
+            transition:max-height 0.3s ease, padding 0.2s ease;
+            padding:0 14px;
+        ">
+            <div style="padding:14px 0;">
+                <!-- Período -->
+                <div style="margin-bottom:12px;">
+                    <div style="font-size:0.64rem;font-weight:700;color:var(--muted);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:8px;">Período</div>
+                    <div class="two-col" style="gap:8px;">
+                        <div class="form-group" style="margin:0;"><label style="font-size:0.7rem;">Fecha Inicial</label><input type="date" id="rep_fi" onchange="vistaReporte(); repSaveConfig()"></div>
+                        <div class="form-group" style="margin:0;"><label style="font-size:0.7rem;">Fecha Final</label><input type="date" id="rep_ff" onchange="vistaReporte(); repSaveConfig()"></div>
+                    </div>
+                    <button id="btn-reset-periodo" class="btn-ghost" style="font-size:0.75rem;padding:6px 10px;width:auto;margin:6px 0 0;" onclick="resetPeriodo()">↺ Ejercicio completo</button>
+                </div>
+                <!-- Opciones extra por tipo -->
+                <div id="opt-diario" class="rep-opt" style="display:block;">
+                    <div style="font-size:0.64rem;font-weight:700;color:var(--muted);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:6px;">Vista del asiento</div>
+                    <select id="diario_vista" onchange="vistaReporte(); repSaveConfig()">
+                        <option value="subcuentas">Subcuentas (detalle completo)</option>
+                        <option value="cuentas">Solo Cuenta Mayor (consolidado)</option>
+                        <option value="parcial">Parcial — subcuentas + total en cuenta</option>
+                    </select>
+                </div>
+                <div id="opt-mayor" class="rep-opt" style="display:none;">
+                    <div style="font-size:0.64rem;font-weight:700;color:var(--muted);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:6px;">Agrupar por</div>
+                    <select id="mayor_nivel" onchange="vistaReporte(); repSaveConfig()">
+                        <option value="subcuenta">Subcuenta (detallado)</option>
+                        <option value="cuenta">Cuenta Mayor (consolidado)</option>
+                    </select>
+                </div>
+                <div id="opt-hoja" class="rep-opt" style="display:none;">
+                    <div style="font-size:0.64rem;font-weight:700;color:var(--muted);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:6px;">Agrupar por</div>
+                    <select id="hoja_nivel" onchange="vistaReporte(); repSaveConfig()">
+                        <option value="subcuenta">Subcuenta (detallado)</option>
+                        <option value="cuenta">Cuenta Mayor (consolidado)</option>
+                    </select>
+                </div>
+                <div id="opt-kardex" class="rep-opt" style="display:none;">
+                    <div style="font-size:0.64rem;font-weight:700;color:var(--muted);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:6px;">Subcuenta de Inventario</div>
+                    <select id="kardex_sub_sel" onchange="vistaReporte(); repSaveConfig()">
+                        <option value="">— Todas —</option>
+                    </select>
+                </div>
+                <div id="opt-resultados" class="rep-opt" style="display:none;">
+                    <div style="font-size:0.64rem;font-weight:700;color:var(--muted);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:6px;">Método de Inventarios</div>
+                    <select id="er_metodo" onchange="vistaReporte(); repSaveConfig()">
+                        <option value="PERPETUOS">Perpetuos</option>
+                        <option value="ANALITICO">Analítico</option>
+                    </select>
+                    <div style="margin-top:10px;">
+                        <div style="font-size:0.64rem;font-weight:700;color:var(--muted);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:6px;">Configurar Rubros</div>
+                        <div id="er-config-rubros" style="background:#fafaf8;border:1.5px solid var(--border);border-radius:8px;padding:10px;max-height:180px;overflow-y:auto;font-size:0.78rem;"></div>
+                        <p style="font-size:0.68rem;color:var(--muted);margin:4px 0 0;">Los rubros con ef="B" aparecen aquí. Arrastra para ordenar.</p>
+                    </div>
+                </div>
+                <div id="opt-balance" class="rep-opt" style="display:none;">
+                    <div style="font-size:0.64rem;font-weight:700;color:var(--muted);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:6px;">Clasificar Rubros (ef="A")</div>
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+                        <div>
+                            <div style="font-size:0.7rem;font-weight:700;color:var(--accent);margin-bottom:4px;text-align:center;">ACTIVO</div>
+                            <div id="bal-lista-activo" style="background:#eef4fb;border:1.5px solid #c3d9ee;border-radius:8px;padding:8px;min-height:60px;font-size:0.75rem;"></div>
+                        </div>
+                        <div>
+                            <div style="font-size:0.7rem;font-weight:700;color:var(--amber);margin-bottom:4px;text-align:center;">PASIVO + CAPITAL</div>
+                            <div id="bal-lista-pasivo" style="background:#fdf5e6;border:1.5px solid #e8c97a;border-radius:8px;padding:8px;min-height:60px;font-size:0.75rem;"></div>
+                        </div>
+                    </div>
+                    <p style="font-size:0.68rem;color:var(--muted);margin:6px 0 0;">Toca un rubro para moverlo entre Activo y Pasivo+Capital.</p>
                 </div>
             </div>
-            <div id="rep-totales-inline" style="display:none;background:#f8f4ec;border-top:2px solid var(--accent-2);padding:10px 16px;font-size:0.78rem;font-weight:700;color:var(--amber);"></div>
+        </div>
+
+        <!-- TABLA PRINCIPAL (máximo espacio) -->
+        <div style="padding:12px 14px 80px;">
+            <div class="card" style="padding:0;overflow:hidden;margin-bottom:0;">
+                <div id="rep-header-inline" style="background:var(--accent);color:#fff;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;">
+                    <div>
+                        <div style="font-size:0.65rem;opacity:0.8;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;" id="rep-empresa-inline"></div>
+                        <div style="font-family:'DM Serif Display',serif;font-size:1rem;margin-top:1px;" id="rep-titulo-inline">Libro Diario</div>
+                    </div>
+                    <div id="rep-periodo-badge" style="font-size:0.65rem;opacity:0.75;text-align:right;"></div>
+                </div>
+                <div id="rep-tabla-inline" style="overflow-x:auto;overflow-y:auto;max-height:calc(100vh - 260px);min-height:200px;">
+                    <div style="padding:40px 24px;text-align:center;color:var(--muted);font-size:0.85rem;">
+                        <div style="font-size:2rem;margin-bottom:8px;opacity:0.4;">📊</div>
+                        Selecciona un período y tipo de reporte para ver los datos aquí.
+                    </div>
+                </div>
+                <div id="rep-totales-inline" style="display:none;background:#f8f4ec;border-top:2px solid var(--accent-2);padding:10px 16px;font-size:0.78rem;font-weight:700;color:var(--amber);"></div>
+            </div>
         </div>
     </div>
+
+    <script>
+    // ── REPORTES: config persistente ──
+    (function() {
+        var REP_KEY = 'contaapp_rep_cfg';
+
+        function repGetConfig() {
+            try { return JSON.parse(localStorage.getItem(REP_KEY) || '{}'); } catch(e) { return {}; }
+        }
+
+        window.repSaveConfig = function() {
+            var cfg = {
+                tipo: (document.querySelector('#rep-pills .rep-pill.active') || {}).dataset?.tipo || 'diario',
+                fi: document.getElementById('rep_fi')?.value || '',
+                ff: document.getElementById('rep_ff')?.value || '',
+                diario_vista: document.getElementById('diario_vista')?.value || 'subcuentas',
+                mayor_nivel:  document.getElementById('mayor_nivel')?.value  || 'subcuenta',
+                hoja_nivel:   document.getElementById('hoja_nivel')?.value   || 'subcuenta',
+                er_metodo:    document.getElementById('er_metodo')?.value    || 'PERPETUOS',
+                kardex_sub:   document.getElementById('kardex_sub_sel')?.value || '',
+                panelOpen:    document.getElementById('rep-config-panel')?.style.maxHeight !== '0px'
+            };
+            localStorage.setItem(REP_KEY, JSON.stringify(cfg));
+        };
+
+        window.repRestoreConfig = function() {
+            var cfg = repGetConfig();
+            if (!cfg.tipo) return; // primera vez — no hacer nada
+
+            // Restaurar fechas si existen
+            if (cfg.fi) { var fi = document.getElementById('rep_fi'); if(fi) fi.value = cfg.fi; }
+            if (cfg.ff) { var ff = document.getElementById('rep_ff'); if(ff) ff.value = cfg.ff; }
+
+            // Restaurar selects
+            if (cfg.diario_vista) { var s = document.getElementById('diario_vista'); if(s) s.value = cfg.diario_vista; }
+            if (cfg.mayor_nivel)  { var s = document.getElementById('mayor_nivel');  if(s) s.value = cfg.mayor_nivel; }
+            if (cfg.hoja_nivel)   { var s = document.getElementById('hoja_nivel');   if(s) s.value = cfg.hoja_nivel; }
+            if (cfg.er_metodo)    { var s = document.getElementById('er_metodo');    if(s) s.value = cfg.er_metodo; }
+            if (cfg.kardex_sub)   { var s = document.getElementById('kardex_sub_sel'); if(s) s.value = cfg.kardex_sub; }
+
+            // Restaurar tipo de reporte
+            if (cfg.tipo) {
+                var pill = document.querySelector('#rep-pills [data-tipo="'+cfg.tipo+'"]');
+                if (pill && typeof seleccionarReporte === 'function') {
+                    seleccionarReporte(cfg.tipo, pill);
+                }
+            }
+
+            // Restaurar estado panel
+            if (cfg.panelOpen) repOpenConfig();
+        };
+
+        function repOpenConfig() {
+            var panel = document.getElementById('rep-config-panel');
+            var btn   = document.getElementById('rep-cfg-toggle-btn');
+            var lbl   = document.getElementById('rep-cfg-label');
+            var ico   = document.getElementById('rep-cfg-icon');
+            if (!panel) return;
+            panel.style.maxHeight = panel.scrollHeight + 200 + 'px';
+            if(lbl) lbl.textContent = 'Ocultar';
+            if(ico) ico.textContent = '✕';
+            if(btn) { btn.style.background='var(--ink)'; btn.style.color='#fff'; btn.style.borderColor='var(--ink)'; }
+        }
+
+        window.repToggleConfig = function() {
+            var panel = document.getElementById('rep-config-panel');
+            var btn   = document.getElementById('rep-cfg-toggle-btn');
+            var lbl   = document.getElementById('rep-cfg-label');
+            var ico   = document.getElementById('rep-cfg-icon');
+            if (!panel) return;
+            var isOpen = panel.style.maxHeight !== '0px' && panel.style.maxHeight !== '';
+            if (isOpen) {
+                panel.style.maxHeight = '0px';
+                panel.style.padding = '0 14px';
+                if(lbl) lbl.textContent = 'Configurar';
+                if(ico) ico.textContent = '⚙️';
+                if(btn) { btn.style.background=''; btn.style.color=''; btn.style.borderColor=''; }
+            } else {
+                repOpenConfig();
+            }
+            setTimeout(repSaveConfig, 50);
+        };
+
+        // Actualiza badge de período en el header de la tabla
+        var _origVistaReporte = window.vistaReporte;
+        function repUpdateBadge() {
+            var fi = document.getElementById('rep_fi')?.value || '';
+            var ff = document.getElementById('rep_ff')?.value || '';
+            var badge = document.getElementById('rep-periodo-badge');
+            if (badge && fi && ff) {
+                badge.textContent = fi.split('-').reverse().join('/') + ' – ' + ff.split('-').reverse().join('/');
+            }
+            // Actualizar título en topbar
+            var pill = document.querySelector('#rep-pills .rep-pill.active');
+            var titulo = document.getElementById('rep-topbar-titulo');
+            var titMap = {diario:'Libro Diario',mayor:'Libro Mayor',hoja:'Hoja de Trabajo',resultados:'Estado de Resultados',balance:'Balance General',catalogo:'Catálogo de Cuentas',kardex:'Kardex'};
+            if(titulo && pill) titulo.textContent = titMap[pill.dataset.tipo] || 'Reporte';
+        }
+
+        // Hook en vistaReporte para actualizar badge
+        var _repVistaOrig = window.vistaReporte;
+        window.vistaReporte = function() {
+            if(typeof _repVistaOrig === 'function') _repVistaOrig.apply(this, arguments);
+            repUpdateBadge();
+        };
+
+        // Restaurar cuando se active el módulo
+        var _origSwitch = window.switchWin;
+        window.switchWin = function(id, el) {
+            if(typeof _origSwitch === 'function') _origSwitch.apply(this, arguments);
+            if(id === 'win-reportes') {
+                setTimeout(function() {
+                    repRestoreConfig();
+                    repUpdateBadge();
+                }, 80);
+            }
+        };
+    })();
+    </script>
 
     <!-- Toast de notificaciones (reemplaza alerts) -->
     <div id="toast-container" style="position:fixed;top:72px;left:50%;transform:translateX(-50%);z-index:9000;display:flex;flex-direction:column;align-items:center;gap:8px;pointer-events:none;width:90%;max-width:360px;"></div>
@@ -3872,8 +4022,8 @@
                     ctaOrder.forEach(c => {
                         const t = byCtaMayor[c];
                         const esAbono = t.h > 0 && t.d === 0;
-                        const indCS = esAbono ? cs + 'padding-left:22px;' : cs;
-                        rows += '<tr><td style="' + cs + 'font-weight:700;color:#1a3c5e;">' + (esAbono ? '' : c) + '</td><td style="' + indCS + '">' + getNomCuenta(c) + '</td><td style="' + csNum + '">' + fmtMon(t.d) + '</td><td style="' + csNum + '">' + fmtMon(t.h) + '</td></tr>';
+                        const indNom = esAbono ? cs + 'padding-left:22px;' : cs;
+                        rows += '<tr><td style="' + cs + 'font-weight:700;color:#1a3c5e;">' + c + '</td><td style="' + indNom + '">' + getNomCuenta(c) + '</td><td style="' + csNum + '">' + fmtMon(t.d) + '</td><td style="' + csNum + '">' + fmtMon(t.h) + '</td></tr>';
                     });
                     rows += '<tr><td colspan="2" style="' + csTot + 'text-align:right;">Sumas:</td><td style="' + csTot + 'text-align:right;">' + fmtMonZ(sumD) + '</td><td style="' + csTot + 'text-align:right;">' + fmtMonZ(sumH) + '</td></tr>';
                     rows += '<tr><td colspan="4" style="' + csGlosa + '">' + (a.concepto||'') + '</td></tr>';
@@ -3907,8 +4057,8 @@
                     rows += '<tr><th style="' + csH + '">Cta.Mayor</th><th style="' + csH + '">Subcuenta</th><th style="' + csH + '">Nombre</th><th style="' + csH + '">Debe</th><th style="' + csH + '">Haber</th></tr>';
                     movs.forEach(m => {
                         const esAbono = (Number(m.haber)||0) > 0;
-                        const indCS = esAbono ? cs + 'padding-left:22px;' : cs;
-                        rows += '<tr><td style="' + cs + 'font-weight:700;color:#1a3c5e;">' + (esAbono ? '' : getPadre(m.subcuenta)) + '</td><td style="' + cs + '">' + m.subcuenta + '</td><td style="' + indCS + '">' + getNomSub(m.subcuenta) + '</td><td style="' + csNum + '">' + fmtMon(m.debe) + '</td><td style="' + csNum + '">' + fmtMon(m.haber) + '</td></tr>';
+                        const indNom = esAbono ? cs + 'padding-left:22px;' : cs;
+                        rows += '<tr><td style="' + cs + 'font-weight:700;color:#1a3c5e;">' + getPadre(m.subcuenta) + '</td><td style="' + cs + '">' + m.subcuenta + '</td><td style="' + indNom + '">' + getNomSub(m.subcuenta) + '</td><td style="' + csNum + '">' + fmtMon(m.debe) + '</td><td style="' + csNum + '">' + fmtMon(m.haber) + '</td></tr>';
                     });
                     rows += '<tr><td colspan="3" style="' + csTot + 'text-align:right;">Sumas:</td><td style="' + csTot + 'text-align:right;">' + fmtMonZ(sumD) + '</td><td style="' + csTot + 'text-align:right;">' + fmtMonZ(sumH) + '</td></tr>';
                     rows += '<tr><td colspan="5" style="' + csGlosa + '">' + (a.concepto||'') + '</td></tr>';
@@ -3916,13 +4066,19 @@
                 }
             });
 
-            const thead = (vista === 'cuentas')
-                ? '<tr><th>Cta.Mayor</th><th>Nombre</th><th>Debe</th><th>Haber</th></tr>'
-                : (vista === 'parcial')
-                    ? '<tr><th>Cta.Mayor</th><th>Subcuenta / Nombre</th><th>Parcial</th><th>Debe</th><th>Haber</th></tr>'
-                    : '<tr><th>Cta. Mayor</th><th>Subcuenta</th><th>Nombre</th><th>Debe</th><th>Haber</th></tr>';
+            let colgroup, thead;
+            if (vista === 'cuentas') {
+                colgroup = '<colgroup><col style="width:70px"><col><col style="width:95px"><col style="width:95px"></colgroup>';
+                thead = '<tr><th>Cta.Mayor</th><th>Nombre</th><th class="num" style="text-align:right;">Debe</th><th class="num" style="text-align:right;">Haber</th></tr>';
+            } else if (vista === 'parcial') {
+                colgroup = '<colgroup><col style="width:65px"><col><col style="width:80px"><col style="width:90px"><col style="width:90px"></colgroup>';
+                thead = '<tr><th>Cta.Mayor</th><th>Subcuenta / Nombre</th><th class="num" style="text-align:right;">Parcial</th><th class="num" style="text-align:right;">Debe</th><th class="num" style="text-align:right;">Haber</th></tr>';
+            } else {
+                colgroup = '<colgroup><col style="width:65px"><col style="width:75px"><col><col style="width:90px"><col style="width:90px"></colgroup>';
+                thead = '<tr><th>Cta. Mayor</th><th>Subcuenta</th><th>Nombre</th><th class="num" style="text-align:right;">Debe</th><th class="num" style="text-align:right;">Haber</th></tr>';
+            }
 
-            const tabla = '<table style="width:100%;border-collapse:collapse;">' + thead + '<tbody>' + rows + '</tbody></table>';
+            const tabla = '<table style="width:100%;border-collapse:collapse;table-layout:fixed;">' + colgroup + '<thead>' + thead + '</thead><tbody>' + rows + '</tbody></table>';
             return wrapTable('Libro Diario — ' + vistaLabel, fechas, tabla);
         }
 
@@ -4132,38 +4288,42 @@
             return `<!DOCTYPE html><html><head><meta charset="UTF-8">
             <style>
                 @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;600&display=swap');
-                * { box-sizing: border-box; }
-                body { font-family: 'DM Sans', Arial, sans-serif; font-size: 11px; color: #111; margin: 0; padding: 20px; }
-                .rpt-header { border-bottom: 2px solid #1a3c5e; margin-bottom: 16px; padding-bottom: 10px; }
-                .rpt-empresa { font-size: 14px; font-weight: 700; color: #0f1117; margin: 0 0 2px; text-transform: uppercase; letter-spacing: 0.04em; }
-                .rpt-title  { font-size: 13px; font-weight: 600; color: #1a3c5e; margin: 0 0 2px; }
-                .rpt-period { font-size: 10px; color: #6b7280; }
-                table { width: 100%; border-collapse: collapse; margin-bottom: 6px; }
-                th { background: #1a3c5e; color: #fff; padding: 7px 8px; text-align: left; font-size: 9px; text-transform: uppercase; letter-spacing: 0.06em; white-space: nowrap; }
-                td { padding: 5px 8px; border-bottom: 1px solid #e8e6e0; vertical-align: top; white-space: nowrap; }
-                .num   { text-align: right; font-variant-numeric: tabular-nums; }
+                * { box-sizing: border-box; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+                body { font-family: 'DM Sans', Arial, sans-serif; font-size: 10px; color: #111; margin: 0; padding: 16px 20px; }
+                .rpt-header { border-bottom: 2px solid #1a3c5e; margin-bottom: 14px; padding-bottom: 8px; }
+                .rpt-empresa { font-size: 13px; font-weight: 700; color: #0f1117; margin: 0 0 2px; text-transform: uppercase; letter-spacing: 0.04em; }
+                .rpt-title  { font-size: 11px; font-weight: 600; color: #1a3c5e; margin: 0 0 2px; }
+                .rpt-period { font-size: 9px; color: #6b7280; }
+                /* Tabla principal — layout fixed con ancho garantizado para cols numéricas */
+                table { width: 100%; border-collapse: collapse; margin-bottom: 6px; table-layout: fixed; }
+                /* Columnas numéricas (Debe/Haber) siempre anchas fijas */
+                table col.c-num { width: 90px; }
+                table col.c-cta { width: 65px; }
+                table col.c-sub { width: 70px; }
+                table col.c-nom { } /* flexible */
+                table col.c-par { width: 75px; }
+                th { background: #1a3c5e !important; color: #fff !important; padding: 6px 6px; text-align: left; font-size: 8px; text-transform: uppercase; letter-spacing: 0.05em; white-space: nowrap; overflow: hidden; }
+                th.num { text-align: right; }
+                td { padding: 4px 6px; border-bottom: 1px solid #e8e6e0; vertical-align: top; font-size: 10px; overflow: hidden; text-overflow: ellipsis; }
+                .num   { text-align: right !important; font-variant-numeric: tabular-nums; white-space: nowrap; }
                 .saldo { color: #1a3c5e; font-weight: 600; }
-                tr.enc-row  td { background: #dce8f5; font-weight: 700; font-size: 10px; color: #0f1117; padding: 6px 8px; }
-                tr.col-head td { background: #f0f4f8; font-weight: 700; font-size: 9px; text-transform: uppercase; letter-spacing: 0.05em; color: #4b5563; }
-                tr.tot-row  td { background: #f8f4ec; border-top: 2px solid #c8a96e; border-bottom: 2px solid #c8a96e; font-weight: 700; }
-                tr.glosa-row td { font-style: italic; color: #6b7280; font-size: 10px; border-bottom: 2px double #1a3c5e; }
-                tr.spacer-row td { padding: 6px 0; border-bottom: none; }
-                tr.pyg-row td { background: #f0fdf4; }
+                tr.enc-row  td { background: #dce8f5 !important; font-weight: 700; font-size: 9px; color: #0f1117; padding: 5px 6px; }
+                tr.col-head td { background: #f0f4f8 !important; font-weight: 700; font-size: 8px; text-transform: uppercase; letter-spacing: 0.05em; color: #4b5563; }
+                tr.tot-row  td { background: #f8f4ec !important; border-top: 2px solid #c8a96e; border-bottom: 2px solid #c8a96e; font-weight: 700; }
+                tr.glosa-row td { font-style: italic; color: #6b7280; font-size: 9px; border-bottom: 2px double #1a3c5e; white-space: normal; }
+                tr.spacer-row td { padding: 5px 0; border-bottom: none; }
+                tr.pyg-row td { background: #f0fdf4 !important; }
                 @media print {
-                    body { padding: 10px; font-size: 9px; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
-                    * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+                    body { padding: 8px 12px; font-size: 9px; }
                     .no-print { display: none !important; }
-                    th  { background: #1a3c5e !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-                    tr.enc-row  td { background: #dce8f5 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-                    tr.col-head td { background: #f0f4f8 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-                    tr.tot-row  td { background: #f8f4ec !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+                    table { table-layout: fixed !important; }
                 }
             </style></head><body>
             <div class="rpt-header">
                 <div class="rpt-empresa">${(db.config && db.config.nombreEmpresa) ? db.config.nombreEmpresa : '&nbsp;'}</div>
-                <div class="rpt-title">${titulo}${periodo ? ' ' + periodo : ''}</div>
+                <div class="rpt-title">${titulo}${periodo ? ' — ' + periodo : ''}</div>
             </div>
-            <button class="no-print" onclick="window.print()" style="margin-bottom:14px;padding:8px 18px;background:#1a3c5e;color:#fff;border:none;border-radius:6px;cursor:pointer;font-weight:600;">🖨 Imprimir / Guardar PDF</button>
+            <button class="no-print" onclick="window.print()" style="margin-bottom:12px;padding:7px 16px;background:#1a3c5e;color:#fff;border:none;border-radius:6px;cursor:pointer;font-weight:600;font-size:12px;">🖨 Imprimir / Guardar PDF</button>
             ${tableHtml}
             </body></html>`;
         }
@@ -4175,7 +4335,7 @@
             // Método nativo: abre ventana nueva y usa window.print() del navegador.
             // Genera PDF vectorial de alta calidad sin pasar por canvas ni compresión de imagen.
             orientation = orientation || 'portrait';
-            const pageCSS = `@page { size: letter ${orientation}; margin: 12mm 10mm 12mm 15mm; }`;
+            const pageCSS = `@page { size: letter ${orientation}; margin: 10mm 8mm 10mm 8mm; }`;
             // Inyectar @page con orientación antes del cierre de </style> o al inicio del <head>
             let printHtml = html;
             if (printHtml.includes('</style>')) {
