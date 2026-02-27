@@ -767,7 +767,7 @@
                     <button class="btn-success" style="flex:1;font-size:0.8rem;padding:9px 10px;" onclick="triggerImportFile('r')">📂 Importar Excel / CSV</button>
                 </div>
                 <div id="import-preview-r" style="display:none;"></div>
-                <div class="table-wrap"><table><thead><tr><th>Código</th><th>Nombre</th><th></th></tr></thead><tbody id="lista-r"></tbody></table></div>
+                <div class="table-wrap"><table><thead><tr><th>Código</th><th>Nombre</th><th style="white-space:nowrap;">Orden</th><th></th></tr></thead><tbody id="lista-r"></tbody></table></div>
             </div>
         </div>
 
@@ -1869,6 +1869,41 @@
         };
         window.eliminarR=async function(i){if(confirm("¿Eliminar este rubro?")){db.rubros.splice(i,1);await guardarDB();}};
 
+        window.moverRubro=async function(i,dir){
+            // Ordenar rubros por código antes de determinar la posición
+            const ordenados=db.rubros.map((r,idx)=>({...r,_gi:idx})).sort((a,b)=>a.codigo.localeCompare(b.codigo));
+            const pos=ordenados.findIndex(r=>r._gi===i);
+            const newPos=pos+dir;
+            if(newPos<0||newPos>=ordenados.length)return;
+            // Intercambiar en el array original
+            const idxA=ordenados[pos]._gi;
+            const idxB=ordenados[newPos]._gi;
+            // Renumerar: asignar códigos intercambiados
+            const codA=db.rubros[idxA].codigo;
+            const codB=db.rubros[idxB].codigo;
+            if(codA===codB)return;
+            const tmp='__TMPR__';
+            // Paso 1: marcar con prefijo temporal para evitar colisiones
+            const actualizarCodRubro=(oldCod,newCod)=>{
+                db.cuentas.forEach(c=>{
+                    if(c.rubroPadre===oldCod){
+                        const oldCtaCod=c.codigo;
+                        const newCtaCod=newCod+oldCtaCod.slice(oldCod.length);
+                        db.subcuentas.forEach(s=>{if(s.cuentaPadre===oldCtaCod){s.cuentaPadre=newCtaCod;s.codigo=newCtaCod+s.codigo.slice(oldCtaCod.length);}});
+                        db.movimientos.forEach(m=>{if(m.subcuenta&&m.subcuenta.startsWith(oldCtaCod))m.subcuenta=newCtaCod+m.subcuenta.slice(oldCtaCod.length);});
+                        (db.polizas||[]).forEach(pol=>{(pol.movimientos||[]).forEach(m=>{if(m.subcuenta&&m.subcuenta.startsWith(oldCtaCod))m.subcuenta=newCtaCod+m.subcuenta.slice(oldCtaCod.length);});});
+                        c.codigo=newCtaCod;c.rubroPadre=newCod;
+                    }
+                });
+                db.rubros.find(r=>r.codigo===oldCod).codigo=newCod;
+            };
+            // Usar prefijo temporal para evitar colisión al intercambiar
+            actualizarCodRubro(codA,tmp+codA);
+            actualizarCodRubro(codB,codA);
+            actualizarCodRubro(tmp+codA,codB);
+            await guardarDB();
+        };
+
         /* helpers para renumerar */
         function renumerarCuentas(rubroPadre){
             const grupo=db.cuentas.filter(c=>c.rubroPadre===rubroPadre);
@@ -2748,10 +2783,10 @@
         window.filtrarDatos = function(t) {
             if (t === 'r') {
                 const q = (document.getElementById('fil-r-buscar').value || '').toLowerCase();
-                let rows = db.rubros.map((r, i) => ({...r, _i: i}));
+                let rows = db.rubros.map((r, i) => ({...r, _i: i})).sort((a,b)=>a.codigo.localeCompare(b.codigo));
                 if (q) rows = rows.filter(r => r.codigo.toLowerCase().includes(q) || r.nombre.toLowerCase().includes(q));
-                const fR = (cod, nom, e, d) => `<tr><td class="td-code">${cod}</td><td>${nom}</td><td><div class="action-btns"><button class="btn-icon btn-edit-icon" onclick="${e}">✏</button><button class="btn-icon btn-del-icon" onclick="${d}">🗑</button></div></td></tr>`;
-                document.getElementById('lista-r').innerHTML = rows.map(r => fR(r.codigo, r.nombre, `editarR(${r._i})`, `eliminarR(${r._i})`)).join('') || '<tr class="empty-row"><td colspan="3">Sin resultados</td></tr>';
+                const fR = (cod, nom, i) => `<tr><td class="td-code">${cod}</td><td>${nom}</td><td><div class="action-btns"><button class="btn-icon btn-ghost" data-arrow-key="r-${i}-up" style="font-size:0.7rem;padding:4px 6px;" onclick="arrowClick(this,()=>moverRubro(${i},-1))" title="Toca 2 veces para subir">↑</button><button class="btn-icon btn-ghost" data-arrow-key="r-${i}-dn" style="font-size:0.7rem;padding:4px 6px;" onclick="arrowClick(this,()=>moverRubro(${i},1))" title="Toca 2 veces para bajar">↓</button></div></td><td><div class="action-btns"><button class="btn-icon btn-edit-icon" onclick="editarR(${i})">✏</button><button class="btn-icon btn-del-icon" onclick="eliminarR(${i})">🗑</button></div></td></tr>`;
+                document.getElementById('lista-r').innerHTML = rows.map(r => fR(r.codigo, r.nombre, r._i)).join('') || '<tr class="empty-row"><td colspan="4">Sin resultados</td></tr>';
                 document.getElementById('datos-r-count').textContent = `(${rows.length} de ${db.rubros.length})`;
 
             } else if (t === 'c') {
@@ -3481,18 +3516,32 @@
 
         function buildTablaInlineMayor(fechas, nivel) {
             const mapA=mapAsientosFecha(fechas);
-            const grupos={};
-            db.movimientos.forEach(m=>{const ast=mapA[m.idAsiento];if(!ast)return;const clave=(nivel==='cuenta')?getPadre(m.subcuenta):m.subcuenta;if(!grupos[clave])grupos[clave]=[];grupos[clave].push({m,ast});});
+            // Agrupar movimientos por (clave, idAsiento) para consolidar subcuentas del mismo asiento
+            const grupos={};  // { clave: { [idAsiento]: {ast, d, h} } }
+            db.movimientos.forEach(m=>{
+                const ast=mapA[m.idAsiento];
+                if(!ast)return;
+                const clave=(nivel==='cuenta')?getPadre(m.subcuenta):m.subcuenta;
+                if(!grupos[clave])grupos[clave]={};
+                if(!grupos[clave][m.idAsiento])grupos[clave][m.idAsiento]={ast,d:0,h:0};
+                grupos[clave][m.idAsiento].d+=Number(m.debe)||0;
+                grupos[clave][m.idAsiento].h+=Number(m.haber)||0;
+            });
             const claves=Object.keys(grupos).sort();
             if(claves.length===0)return{vacio:true};
             let rows='',gtD=0,gtH=0;
             claves.forEach(clave=>{
-                const entradas=grupos[clave].sort((a,b)=>a.ast.fecha.localeCompare(b.ast.fecha)||Number(a.ast.no)-Number(b.ast.no));
+                // Ordenar entradas por fecha y número de asiento
+                const entradas=Object.values(grupos[clave]).sort((a,b)=>a.ast.fecha.localeCompare(b.ast.fecha)||Number(a.ast.no)-Number(b.ast.no));
                 const nombre=(nivel==='cuenta')?getNomCuenta(clave):getNomSub(clave);
                 let sumD=0,sumH=0,saldo=0;
                 rows+=`<tr class="enc-row"><td colspan="6">${clave} — ${nombre}</td></tr>`;
                 rows+=`<tr class="col-head"><td>Fecha</td><td>Asiento</td><td>Concepto</td><td class="num">Debe</td><td class="num">Haber</td><td class="num">Saldo</td></tr>`;
-                entradas.forEach(({m,ast})=>{const d=Number(m.debe)||0,h=Number(m.haber)||0;saldo+=d-h;sumD+=d;sumH+=h;const lbl=saldo===0?'—':`${fmtMonZ(Math.abs(saldo))} ${saldo>0?'D':'H'}`;rows+=`<tr><td>${fmtFecha(ast.fecha)}</td><td>${ast.no}</td><td>${ast.concepto}</td><td class="num">${fmtMon(d)}</td><td class="num">${fmtMon(h)}</td><td class="num saldo">${lbl}</td></tr>`;});
+                entradas.forEach(({ast,d,h})=>{
+                    saldo+=d-h;sumD+=d;sumH+=h;
+                    const lbl=saldo===0?'—':`${fmtMonZ(Math.abs(saldo))} ${saldo>0?'D':'H'}`;
+                    rows+=`<tr><td>${fmtFecha(ast.fecha)}</td><td>${ast.no}</td><td>${ast.concepto}</td><td class="num">${fmtMon(d)}</td><td class="num">${fmtMon(h)}</td><td class="num saldo">${lbl}</td></tr>`;
+                });
                 const sf=saldo===0?'—':`${fmtMonZ(Math.abs(saldo))} ${saldo>0?'D':'H'}`;
                 rows+=`<tr class="tot-row"><td colspan="3" style="text-align:right;">Total:</td><td class="num">${fmtMonZ(sumD)}</td><td class="num">${fmtMonZ(sumH)}</td><td class="num saldo">${sf}</td></tr>`;
                 rows+=`<tr class="spacer-row"><td colspan="6"></td></tr>`;
@@ -3825,16 +3874,17 @@
         function buildLibroMayor(fechas, nivel) {
             const mapA = mapAsientosFecha(fechas);
 
-            // Agrupar movimientos por clave (subcuenta o cuenta mayor)
-            // nivel = 'subcuenta' | 'cuenta'
-            const grupos = {};   // { clave: [ {mov, ast} ] }
+            // Agrupar por (clave, idAsiento) para consolidar subcuentas del mismo asiento en una fila
+            const grupos = {};   // { clave: { [idAsiento]: {ast, d, h} } }
 
             db.movimientos.forEach(m => {
                 const ast = mapA[m.idAsiento];
                 if (!ast) return;
                 const clave = (nivel === 'cuenta') ? getPadre(m.subcuenta) : m.subcuenta;
-                if (!grupos[clave]) grupos[clave] = [];
-                grupos[clave].push({ m, ast });
+                if (!grupos[clave]) grupos[clave] = {};
+                if (!grupos[clave][m.idAsiento]) grupos[clave][m.idAsiento] = { ast, d: 0, h: 0 };
+                grupos[clave][m.idAsiento].d += Number(m.debe) || 0;
+                grupos[clave][m.idAsiento].h += Number(m.haber) || 0;
             });
 
             const claves = Object.keys(grupos).sort();
@@ -3842,7 +3892,7 @@
 
             let rows = '';
             claves.forEach(clave => {
-                const entradas = grupos[clave].sort((a,b) =>
+                const entradas = Object.values(grupos[clave]).sort((a,b) =>
                     a.ast.fecha.localeCompare(b.ast.fecha) || Number(a.ast.no) - Number(b.ast.no));
 
                 const nombre = (nivel === 'cuenta') ? getNomCuenta(clave) : getNomSub(clave);
@@ -3851,13 +3901,10 @@
                 rows += `<tr class="enc-row"><td colspan="6">Cuenta: ${clave} — ${nombre}</td></tr>`;
                 rows += `<tr class="col-head"><td>Fecha</td><td>Asiento</td><td>Concepto</td><td class="num">Debe</td><td class="num">Haber</td><td class="num">Saldo</td></tr>`;
 
-                entradas.forEach(({ m, ast }) => {
-                    const d = Number(m.debe) || 0;
-                    const h = Number(m.haber) || 0;
+                entradas.forEach(({ ast, d, h }) => {
                     saldo += d - h;
                     sumD  += d;
                     sumH  += h;
-                    // Solo mostrar el valor de la columna que tiene importe
                     const labelSaldo = saldo === 0 ? '—' : `${fmtMonZ(Math.abs(saldo))} ${saldo > 0 ? 'D' : 'H'}`;
                     rows += `<tr>
                         <td>${fmtFecha(ast.fecha)}</td>
@@ -4101,7 +4148,7 @@
 
         function getRubrosER() {
             // Rubros marcados con ef="B"
-            return db.rubros.filter(r => r.ef && r.ef.includes('B'));
+            return db.rubros.filter(r => r.ef && r.ef.includes('B')).sort((a,b)=>a.codigo.localeCompare(b.codigo));
         }
 
         function getConfigER() {
@@ -4333,13 +4380,12 @@
         // ══════════════════════════════════════════════════════════
 
         function getRubrosBalance() {
-            return db.rubros.filter(r => r.ef && r.ef.includes('A'));
+            return db.rubros.filter(r => r.ef && r.ef.includes('A')).sort((a,b)=>a.codigo.localeCompare(b.codigo));
         }
 
         function getConfigBalance() {
-            const rubros = getRubrosBalance();
+            const rubros = getRubrosBalance(); // ya ordenados por código
             const saved = (db.config && db.config.balConfig) ? db.config.balConfig : {};
-            // Por defecto: primeros en Activo, últimos en Pasivo según heurística
             const activo  = [];
             const pasivo  = [];
             rubros.forEach(r => {
@@ -4347,6 +4393,9 @@
                 if (lado === 'activo') activo.push(r);
                 else pasivo.push(r);
             });
+            // Mantener orden por código dentro de cada lado
+            activo.sort((a,b)=>a.codigo.localeCompare(b.codigo));
+            pasivo.sort((a,b)=>a.codigo.localeCompare(b.codigo));
             return { activo, pasivo };
         }
 
