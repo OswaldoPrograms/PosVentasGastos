@@ -836,6 +836,16 @@
 
         <!-- ── SISTEMA ── -->
         <div id="datos-sec-sistema" class="datos-sec" style="display:none;">
+            <!-- Nombre de Empresa -->
+            <div class="card" style="border:1.5px solid var(--accent-2);">
+                <div class="card-title" style="color:var(--amber);">🏢 Datos de la Empresa</div>
+                <div class="form-group" style="margin-bottom:0;">
+                    <label>Nombre de la empresa</label>
+                    <input type="text" id="cfg_empresa" placeholder="Ej: Empresa S.A. de C.V."
+                        oninput="guardarNombreEmpresa()"
+                        style="font-size:1rem;font-weight:600;">
+                </div>
+            </div>
             <!-- Ejercicio Fiscal -->
             <div class="card" style="border:1.5px solid var(--accent);">
                 <div class="card-title" style="color:var(--accent);">📅 Ejercicio Fiscal</div>
@@ -1004,8 +1014,8 @@
         <!-- Tabla inline -->
         <div class="card" style="padding:0;overflow:hidden;">
             <div id="rep-header-inline" style="background:var(--accent);color:#fff;padding:14px 16px;">
-                <div style="font-family:'DM Serif Display',serif;font-size:1rem;" id="rep-titulo-inline">Libro Diario</div>
-                <div style="font-size:0.68rem;opacity:0.7;margin-top:2px;" id="rep-periodo-inline"></div>
+                <div style="font-size:0.7rem;opacity:0.85;font-weight:700;letter-spacing:0.05em;text-transform:uppercase;" id="rep-empresa-inline"></div>
+                <div style="font-family:'DM Serif Display',serif;font-size:1rem;margin-top:1px;" id="rep-titulo-inline">Libro Diario</div>
             </div>
             <div id="rep-tabla-inline" style="overflow-x:auto;max-height:60vh;overflow-y:auto;">
                 <div style="padding:32px;text-align:center;color:var(--muted);font-size:0.82rem;">
@@ -2197,6 +2207,12 @@
             syncEjercicioUI();
         };
 
+        window.guardarNombreEmpresa = function() {
+            if (!db.config) db.config = {};
+            db.config.nombreEmpresa = document.getElementById('cfg_empresa').value.trim();
+            guardarDB();
+        };
+
         function syncEjercicioUI() {
             const y = (db.config && db.config.ejercicio) ? db.config.ejercicio : new Date().getFullYear();
             const inp = document.getElementById('cfg_ejercicio');
@@ -2208,6 +2224,9 @@
                 previewTxt.textContent = ' 01/01/' + y + ' al 31/12/' + y;
                 preview.style.display = 'block';
             }
+            // Sync nombre empresa
+            const empInp = document.getElementById('cfg_empresa');
+            if (empInp) empInp.value = (db.config && db.config.nombreEmpresa) || '';
             // Update the reset button label in reportes
             const resetBtn = document.getElementById('btn-reset-periodo');
             if (resetBtn) resetBtn.textContent = '↺ ' + y;
@@ -3359,9 +3378,14 @@
             const nivelHoja  = (document.getElementById('hoja_nivel')||{}).value  || 'subcuenta';
 
             const titulos = { diario:'Libro Diario', mayor:'Libro Mayor', hoja:'Hoja de Trabajo', catalogo:'Catálogo de Cuentas', resultados:'Estado de Resultados', balance:'Balance General', kardex:'Kardex Valorizado' };
-            document.getElementById('rep-titulo-inline').textContent = titulos[tipo] || tipo;
-            document.getElementById('rep-periodo-inline').textContent =
-                (tipo === 'catalogo') ? '' : `Período: ${fmtFecha(fi)} al ${fmtFecha(ff)}`;
+            document.getElementById('rep-empresa-inline').textContent = (db.config && db.config.nombreEmpresa) ? db.config.nombreEmpresa : '';
+            let periodoText = '';
+            if (tipo === 'catalogo') periodoText = '';
+            else if (tipo === 'balance') periodoText = `Al ${fmtFecha(ff)}`;
+            else if (tipo === 'resultados') periodoText = `Del ${fmtFecha(fi)} al ${fmtFecha(ff)}`;
+            else periodoText = `Período: ${fmtFecha(fi)} al ${fmtFecha(ff)}`;
+            const tituloBase = titulos[tipo] || tipo;
+            document.getElementById('rep-titulo-inline').textContent = periodoText ? `${tituloBase} ${periodoText}` : tituloBase;
 
             // Inicializar UIs de configuración cuando se seleccionan
             if (tipo === 'resultados') inicializarConfigER();
@@ -3433,9 +3457,11 @@
                     rows += `<tr class="col-head"><td>Cta. Mayor</td><td>Nombre</td><td class="num">Debe</td><td class="num">Haber</td></tr>`;
                     cuentasSorted.forEach(c => {
                         const tot = byCtaMayor[c];
+                        const esAbono = tot.h > 0 && tot.d === 0;
+                        const indent = esAbono ? 'padding-left:24px;' : '';
                         rows += `<tr>
                             <td class="td-code" style="font-weight:700;">${c}</td>
-                            <td>${getNomCuenta(c)}</td>
+                            <td style="${indent}">${getNomCuenta(c)}</td>
                             <td class="num">${fmtMon(tot.d)}</td>
                             <td class="num">${fmtMon(tot.h)}</td>
                         </tr>`;
@@ -3490,7 +3516,11 @@
                     // ── OPCIÓN 2: Solo subcuentas (default) ─────────────────────
                     rows += `<tr class="enc-row"><td colspan="5">Asiento N° ${a.no} — ${fmtFecha(a.fecha)} — ${fmtTipo(a.tipo)}</td></tr>`;
                     rows += `<tr class="col-head"><td>Cta.Mayor</td><td>Subcuenta</td><td>Nombre</td><td class="num">Debe</td><td class="num">Haber</td></tr>`;
-                    movs.forEach(m=>{rows+=`<tr><td>${getPadre(m.subcuenta)}</td><td>${m.subcuenta}</td><td>${getNomSub(m.subcuenta)}</td><td class="num">${fmtMon(m.debe)}</td><td class="num">${fmtMon(m.haber)}</td></tr>`;});
+                    movs.forEach(m=>{
+                        const esAbono = (Number(m.haber)||0) > 0;
+                        const indent = esAbono ? 'padding-left:24px;' : '';
+                        rows+=`<tr><td>${getPadre(m.subcuenta)}</td><td>${m.subcuenta}</td><td style="${indent}">${getNomSub(m.subcuenta)}</td><td class="num">${fmtMon(m.debe)}</td><td class="num">${fmtMon(m.haber)}</td></tr>`;
+                    });
                     rows += `<tr class="tot-row"><td colspan="3" style="text-align:right;">Sumas:</td><td class="num">${fmtMonZ(sumD)}</td><td class="num">${fmtMonZ(sumH)}</td></tr>`;
                     rows += `<tr class="glosa-row"><td colspan="5">${a.concepto}</td></tr>`;
                     rows += `<tr class="spacer-row"><td colspan="5"></td></tr>`;
@@ -3817,7 +3847,9 @@
                     rows += '<tr><th style="' + csH + '">Cta.Mayor</th><th style="' + csH + '">Nombre</th><th style="' + csH + '">Debe</th><th style="' + csH + '">Haber</th></tr>';
                     ctaOrder.forEach(c => {
                         const t = byCtaMayor[c];
-                        rows += '<tr><td style="' + cs + 'font-weight:700;color:#1a3c5e;">' + c + '</td><td style="' + cs + '">' + getNomCuenta(c) + '</td><td style="' + csNum + '">' + fmtMon(t.d) + '</td><td style="' + csNum + '">' + fmtMon(t.h) + '</td></tr>';
+                        const esAbono = t.h > 0 && t.d === 0;
+                        const indCS = esAbono ? cs + 'padding-left:22px;' : cs;
+                        rows += '<tr><td style="' + cs + 'font-weight:700;color:#1a3c5e;">' + (esAbono ? '' : c) + '</td><td style="' + indCS + '">' + getNomCuenta(c) + '</td><td style="' + csNum + '">' + fmtMon(t.d) + '</td><td style="' + csNum + '">' + fmtMon(t.h) + '</td></tr>';
                     });
                     rows += '<tr><td colspan="2" style="' + csTot + 'text-align:right;">Sumas:</td><td style="' + csTot + 'text-align:right;">' + fmtMonZ(sumD) + '</td><td style="' + csTot + 'text-align:right;">' + fmtMonZ(sumH) + '</td></tr>';
                     rows += '<tr><td colspan="4" style="' + csGlosa + '">' + (a.concepto||'') + '</td></tr>';
@@ -3850,7 +3882,9 @@
                     rows += '<tr><td colspan="5" style="' + csEnc + '">Asiento N° ' + a.no + ' — ' + fmtFecha(a.fecha) + ' — ' + fmtTipo(a.tipo) + '</td></tr>';
                     rows += '<tr><th style="' + csH + '">Cta.Mayor</th><th style="' + csH + '">Subcuenta</th><th style="' + csH + '">Nombre</th><th style="' + csH + '">Debe</th><th style="' + csH + '">Haber</th></tr>';
                     movs.forEach(m => {
-                        rows += '<tr><td style="' + cs + 'font-weight:700;color:#1a3c5e;">' + getPadre(m.subcuenta) + '</td><td style="' + cs + '">' + m.subcuenta + '</td><td style="' + cs + '">' + getNomSub(m.subcuenta) + '</td><td style="' + csNum + '">' + fmtMon(m.debe) + '</td><td style="' + csNum + '">' + fmtMon(m.haber) + '</td></tr>';
+                        const esAbono = (Number(m.haber)||0) > 0;
+                        const indCS = esAbono ? cs + 'padding-left:22px;' : cs;
+                        rows += '<tr><td style="' + cs + 'font-weight:700;color:#1a3c5e;">' + (esAbono ? '' : getPadre(m.subcuenta)) + '</td><td style="' + cs + '">' + m.subcuenta + '</td><td style="' + indCS + '">' + getNomSub(m.subcuenta) + '</td><td style="' + csNum + '">' + fmtMon(m.debe) + '</td><td style="' + csNum + '">' + fmtMon(m.haber) + '</td></tr>';
                     });
                     rows += '<tr><td colspan="3" style="' + csTot + 'text-align:right;">Sumas:</td><td style="' + csTot + 'text-align:right;">' + fmtMonZ(sumD) + '</td><td style="' + csTot + 'text-align:right;">' + fmtMonZ(sumH) + '</td></tr>';
                     rows += '<tr><td colspan="5" style="' + csGlosa + '">' + (a.concepto||'') + '</td></tr>';
@@ -4040,17 +4074,21 @@
         // ══════════════════════════════════════════════════════════
         // HTML WRAPPER
         // ══════════════════════════════════════════════════════════
-        function wrapTable(titulo, fechas, tableHtml) {
-            const periodo = fechas
-                ? `Período: ${fmtFecha(fechas.fiStr)} al ${fmtFecha(fechas.ffStr)}`
-                : '';
+        function wrapTable(titulo, fechas, tableHtml, tipoRep) {
+            let periodo = '';
+            if (fechas) {
+                if (tipoRep === 'balance') periodo = `Al ${fmtFecha(fechas.ffStr)}`;
+                else if (tipoRep === 'resultados') periodo = `Del ${fmtFecha(fechas.fiStr)} al ${fmtFecha(fechas.ffStr)}`;
+                else periodo = `Período: ${fmtFecha(fechas.fiStr)} al ${fmtFecha(fechas.ffStr)}`;
+            }
             return `<!DOCTYPE html><html><head><meta charset="UTF-8">
             <style>
                 @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;600&display=swap');
                 * { box-sizing: border-box; }
                 body { font-family: 'DM Sans', Arial, sans-serif; font-size: 11px; color: #111; margin: 0; padding: 20px; }
                 .rpt-header { border-bottom: 2px solid #1a3c5e; margin-bottom: 16px; padding-bottom: 10px; }
-                .rpt-title  { font-size: 18px; font-weight: 700; color: #1a3c5e; margin: 0 0 4px; }
+                .rpt-empresa { font-size: 14px; font-weight: 700; color: #0f1117; margin: 0 0 2px; text-transform: uppercase; letter-spacing: 0.04em; }
+                .rpt-title  { font-size: 13px; font-weight: 600; color: #1a3c5e; margin: 0 0 2px; }
                 .rpt-period { font-size: 10px; color: #6b7280; }
                 table { width: 100%; border-collapse: collapse; margin-bottom: 6px; }
                 th { background: #1a3c5e; color: #fff; padding: 7px 8px; text-align: left; font-size: 9px; text-transform: uppercase; letter-spacing: 0.06em; white-space: nowrap; }
@@ -4074,8 +4112,8 @@
                 }
             </style></head><body>
             <div class="rpt-header">
-                <div class="rpt-title">${titulo}</div>
-                <div class="rpt-period">${periodo}</div>
+                <div class="rpt-empresa">${(db.config && db.config.nombreEmpresa) ? db.config.nombreEmpresa : '&nbsp;'}</div>
+                <div class="rpt-title">${titulo}${periodo ? ' ' + periodo : ''}</div>
             </div>
             <button class="no-print" onclick="window.print()" style="margin-bottom:14px;padding:8px 18px;background:#1a3c5e;color:#fff;border:none;border-radius:6px;cursor:pointer;font-weight:600;">🖨 Imprimir / Guardar PDF</button>
             ${tableHtml}
@@ -4307,7 +4345,7 @@
             const saldosSub = calcularSaldosSubcuentasER(fechas.fi, fechas.ff);
             const metodo = (document.getElementById('er_metodo')||{}).value || 'PERPETUOS';
             const tabla = buildERHtml(config, saldosSub, fechas, metodo, false);
-            return wrapTable(`Estado de Resultados (${metodo})`, fechas, tabla);
+            return wrapTable(`Estado de Resultados (${metodo})`, fechas, tabla, 'resultados');
         }
 
         function buildERHtml(config, saldosSub, fechas, metodo, inline) {
@@ -4483,7 +4521,7 @@
             const cfg = getConfigBalance();
             const { saldosCuenta, saldosRubro } = calcularSaldosRubros(fechas.fi, fechas.ff);
             const tabla = buildBalanceHtml(cfg, saldosCuenta, saldosRubro, false);
-            return wrapTable('Balance General', fechas, tabla);
+            return wrapTable('Balance General', fechas, tabla, 'balance');
         }
 
         function buildBalanceHtml(cfg, saldosCuenta, saldosRubro, inline) {
@@ -5055,10 +5093,12 @@
                 return (a.subcuenta||'').localeCompare(b.subcuenta||'');
             });
             _movsSorted.forEach(m => {
+                const esAbono = m.haber > 0;
+                const indentStyle = esAbono ? 'padding-left:18px;' : '';
                 movRows += '<tr>' +
-                    '<td style="' + cs + 'text-align:center;">' + (m.cuentaMayor||'') + '</td>' +
+                    '<td style="' + cs + 'text-align:center;">' + (esAbono ? '' : (m.cuentaMayor||'')) + '</td>' +
                     '<td style="' + cs + 'text-align:center;">' + m.subcuenta + '</td>' +
-                    '<td style="' + cs + 'white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + m.nombre + '</td>' +
+                    '<td style="' + cs + 'white-space:nowrap;overflow:hidden;text-overflow:ellipsis;' + indentStyle + '">' + m.nombre + '</td>' +
                     '<td style="' + cs + 'text-align:right;font-variant-numeric:tabular-nums;">' + (m.debe > 0 ? fmtMonZ(m.debe) : '') + '</td>' +
                     '<td style="' + cs + 'text-align:right;font-variant-numeric:tabular-nums;">' + (m.haber > 0 ? fmtMonZ(m.haber) : '') + '</td>' +
                     '</tr>';
