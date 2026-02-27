@@ -2464,7 +2464,14 @@
             else{sub=monto;iva=Number((monto*0.16).toFixed(2));}
             const md=db.subcuentas.find(s=>s.codigo===cm),mi=db.subcuentas.find(s=>s.codigo===ci);
             tempMovimientos.push({subcuenta:cm,nombre:md?md.nombre:"",debe:esd?sub:0,haber:!esd?sub:0,esInv:esPerpetuo()&&esSubInv(cm)});
-            tempMovimientos.push({subcuenta:ci,nombre:mi?mi.nombre:"",debe:esd?iva:0,haber:!esd?iva:0});
+            // Si ya existe un movimiento con la cuenta de IVA, sumar en lugar de duplicar
+            const movIvaExistente = tempMovimientos.find(m => m.subcuenta === ci);
+            if (movIvaExistente) {
+                movIvaExistente.debe   = Number((movIvaExistente.debe   + (esd ? iva : 0)).toFixed(2));
+                movIvaExistente.haber  = Number((movIvaExistente.haber  + (!esd ? iva : 0)).toFixed(2));
+            } else {
+                tempMovimientos.push({subcuenta:ci,nombre:mi?mi.nombre:"",debe:esd?iva:0,haber:!esd?iva:0});
+            }
             ssReset('m_subcuenta');ssReset('m_sub_iva');
             document.getElementById('m_debe').value="";document.getElementById('m_haber').value="";
             renderTempMovimientos();window.showSuccess('Movimiento agregado');
@@ -2476,7 +2483,15 @@
             const d=parseFloat(document.getElementById('m_debe').value)||0,h=parseFloat(document.getElementById('m_haber').value)||0;
             if(!cs){showError("Selecciona una subcuenta.");return;}if(d===0&&h===0){showError("Ingresa un importe.");return;}if(d>0&&h>0){showError("No puede tener Debe y Haber a la vez.");return;}
             const sd=db.subcuentas.find(s=>s.codigo===cs);
-            tempMovimientos.push({subcuenta:cs,nombre:sd?sd.nombre:"",debe:d,haber:h,esInv:esPerpetuo()&&esSubInv(cs)});
+            // Si es cuenta de IVA y ya hay un movimiento con ella, sumar en lugar de duplicar
+            const existente = tempMovimientos.find(m => m.subcuenta === cs);
+            if (existente && sd && sd.is_iva) {
+                existente.debe  = Number((existente.debe  + d).toFixed(2));
+                existente.haber = Number((existente.haber + h).toFixed(2));
+                showSuccess('IVA sumado al movimiento existente');
+            } else {
+                tempMovimientos.push({subcuenta:cs,nombre:sd?sd.nombre:"",debe:d,haber:h,esInv:esPerpetuo()&&esSubInv(cs)});
+            }
             ssReset('m_subcuenta');document.getElementById('m_debe').value="";document.getElementById('m_haber').value="";
             renderTempMovimientos();checkHintPyG();
         };
