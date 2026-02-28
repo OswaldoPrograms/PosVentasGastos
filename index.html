@@ -724,7 +724,7 @@
             </div>
             <div class="table-wrap">
                 <table>
-                    <thead><tr><th>Subcuenta</th><th>Nombre</th><th>Debe</th><th>Haber</th><th></th></tr></thead>
+                    <thead><tr><th>Subcuenta</th><th>Nombre</th><th>Debe</th><th>Haber</th><th style="white-space:nowrap;">Ord.</th><th></th></tr></thead>
                     <tbody id="lista-temp-mov">
                         <tr class="empty-row"><td colspan="4">Sin movimientos</td></tr>
                     </tbody>
@@ -830,7 +830,7 @@
                     <input type="date" id="fil-a-ff" onchange="filtrarDatos('a')" style="font-size:0.82rem;padding:9px 10px;flex:1;min-width:130px;">
                     <button onclick="limpiarFiltrosA()" style="font-size:0.72rem;padding:8px 10px;border-radius:8px;border:1.5px solid var(--border);background:#fff;color:var(--muted);cursor:pointer;font-family:inherit;white-space:nowrap;">✕ Limpiar</button>
                 </div>
-                <div class="table-wrap"><table><thead><tr><th>No.</th><th>Fecha</th><th>Concepto</th><th>Tipo</th><th></th></tr></thead><tbody id="lista-a"></tbody></table></div>
+                <div class="table-wrap"><table><thead><tr><th>No.</th><th>Fecha</th><th>Concepto</th><th>Tipo</th><th style="white-space:nowrap;">Orden</th><th></th></tr></thead><tbody id="lista-a"></tbody></table></div>
             </div>
         </div>
 
@@ -1364,7 +1364,7 @@
                 <div style="font-size:0.68rem;font-weight:700;color:var(--muted);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:8px;">Movimientos <span style="font-weight:400;letter-spacing:0;">(edita los importes para esta póliza)</span></div>
                 <div class="table-wrap" style="margin-bottom:10px;">
                     <table>
-                        <thead><tr><th>Cuenta</th><th>Sub-Cta</th><th>Nombre</th><th>Debe</th><th>Haber</th><th>Pend.</th></tr></thead>
+                        <thead><tr><th>Cuenta</th><th>Sub-Cta</th><th>Nombre</th><th>Debe</th><th>Haber</th><th>Pend.</th><th style="white-space:nowrap;">Ord.</th></tr></thead>
                         <tbody id="pol-mov-body"></tbody>
                     </table>
                 </div>
@@ -1773,6 +1773,7 @@
         let db = { rubros:[], cuentas:[], subcuentas:[], asientos:[], movimientos:[], kardex:[], polizas:[], config:{ivaDefault:""} };
         let editIdx = { r:null, c:null, s:null, a:null };
         let tempMovimientos = [];
+        let tempMovOrdenManual = false; // true cuando el usuario ha reordenado manualmente
         let firebaseListo = false;
         let _unsubscribeDB = null;   // listener activo actual
         let _rutaActual   = null;    // ruta firebase activa
@@ -2647,6 +2648,13 @@
         };
 
         window.eliminarMov=function(i){tempMovimientos.splice(i,1);renderTempMovimientos();checkHintPyG();};
+        window.moverMov=function(i,dir){
+            const j=i+dir;
+            if(j<0||j>=tempMovimientos.length)return;
+            [tempMovimientos[i],tempMovimientos[j]]=[tempMovimientos[j],tempMovimientos[i]];
+            tempMovOrdenManual=true;
+            renderTempMovimientos();
+        };
 
         // Verifica si el asiento actual activará reclasificación PyG y muestra aviso
         window.checkHintPyG = function() {
@@ -2668,15 +2676,25 @@
 
         function renderTempMovimientos(){
             let sd=0,sh=0;const tb=document.getElementById('lista-temp-mov');
-            if(tempMovimientos.length===0){tb.innerHTML='<tr class="empty-row"><td colspan="4">Sin movimientos</td></tr>';}
+            if(tempMovimientos.length===0){tb.innerHTML='<tr class="empty-row"><td colspan="6">Sin movimientos</td></tr>';}
             else{
-            // Ordenar: primero Debe, luego Haber; dentro de cada grupo por código de subcuenta
-            const _ordenados=tempMovimientos.map((m,idx)=>({...m,_oi:idx})).sort((a,b)=>{
-                const ga=(a.debe>0)?0:1,gb=(b.debe>0)?0:1;
-                if(ga!==gb)return ga-gb;
-                return (a.subcuenta||'').localeCompare(b.subcuenta||'');
-            });
-            tb.innerHTML=_ordenados.map((m)=>{const i=m._oi;sd+=m.debe;sh+=m.haber;
+            // Si no hay orden manual, auto-ordenar: primero Debe, luego Haber; por código de subcuenta
+            let _lista;
+            if(tempMovOrdenManual){
+                _lista=tempMovimientos.map((m,idx)=>({...m,_oi:idx}));
+            } else {
+                _lista=tempMovimientos.map((m,idx)=>({...m,_oi:idx})).sort((a,b)=>{
+                    const ga=(a.debe>0)?0:1,gb=(b.debe>0)?0:1;
+                    if(ga!==gb)return ga-gb;
+                    return (a.subcuenta||'').localeCompare(b.subcuenta||'');
+                });
+                // Sincronizar el array con el orden visual si no es manual
+                const ordered=_lista.map(m=>{const {_oi,...rest}=m;return rest;});
+                tempMovimientos.splice(0,tempMovimientos.length,...ordered);
+                _lista=tempMovimientos.map((m,idx)=>({...m,_oi:idx}));
+            }
+            const n=_lista.length;
+            tb.innerHTML=_lista.map((m,_j)=>{const i=m._oi;sd+=m.debe;sh+=m.haber;
                 let badge='';
                 if(m.esInv && m.cantidadKardex!=null){
                     if(m.cantidadKardex === 0){
@@ -2687,7 +2705,9 @@
                 } else if(m.esInv){
                     badge='<span style="font-size:0.63rem;background:var(--amber-lt);color:var(--amber);border:1px solid #e8c97a;border-radius:6px;padding:1px 5px;margin-left:4px;">📦 pendiente</span>';
                 }
-                return`<tr><td class="td-code">${m.subcuenta}</td><td style="font-size:0.75rem;color:var(--muted);">${m.nombre||''} ${badge}</td><td>${m.debe>0?m.debe.toFixed(2):''}</td><td>${m.haber>0?m.haber.toFixed(2):''}</td><td><div class="action-btns"><button class="btn-icon btn-del-icon" onclick="eliminarMov(${i})">✕</button></div></td></tr>`;}).join('');}
+                const upDisabled=i===0?'disabled':'';
+                const downDisabled=i===n-1?'disabled':'';
+                return`<tr><td class="td-code">${m.subcuenta}</td><td style="font-size:0.75rem;color:var(--muted);">${m.nombre||''} ${badge}</td><td>${m.debe>0?m.debe.toFixed(2):''}</td><td>${m.haber>0?m.haber.toFixed(2):''}</td><td><div class="action-btns" style="gap:2px;"><button class="btn-icon btn-secondary" style="padding:3px 5px;font-size:0.7rem;min-width:22px;border-radius:5px;" onclick="moverMov(${i},-1)" ${upDisabled}>▲</button><button class="btn-icon btn-secondary" style="padding:3px 5px;font-size:0.7rem;min-width:22px;border-radius:5px;" onclick="moverMov(${i},1)" ${downDisabled}>▼</button></div></td><td><div class="action-btns"><button class="btn-icon btn-del-icon" onclick="eliminarMov(${i})">✕</button></div></td></tr>`;}).join('');}
             const lc=document.getElementById('label-cuadre');
             lc.textContent=`$${sd.toFixed(2)} / $${sh.toFixed(2)}`;
             lc.className=(sd>0&&Math.abs(sd-sh)<0.001)?'totals-ok':'totals-err';
@@ -2806,9 +2826,40 @@
         };
 
         window.cancelarEdicionAsiento=function(){
-            editIdx.a=null;tempMovimientos=[];document.getElementById('a_concepto').value="";
+            editIdx.a=null;tempMovimientos=[];tempMovOrdenManual=false;document.getElementById('a_concepto').value="";
             document.getElementById('label-edit-a').style.display='none';document.getElementById('btn-cancel-a').style.display='none';
             iniciarAsiento();renderTempMovimientos();
+        };
+
+        window.moverAsiento=async function(i, dir){
+            const j = i + dir;
+            if(j < 0 || j >= db.asientos.length) return;
+            // Intercambiar posiciones en el array
+            [db.asientos[i], db.asientos[j]] = [db.asientos[j], db.asientos[i]];
+            // Renumerar todos los asientos según su nueva posición
+            const tmp = '__TMPNO__';
+            // Paso 1: marcar números temporales para evitar colisiones
+            db.asientos.forEach((a, k) => {
+                const oldNo = a.no;
+                const newNo = k + 1;
+                if(String(oldNo) !== String(newNo)){
+                    db.movimientos.forEach(m => { if(m.idAsiento === a.id) m.noAsiento = tmp + oldNo; });
+                    (db.polizas||[]).forEach(pol => { if(pol.noAsiento === oldNo || pol.noAsiento === String(oldNo)) pol._tmpNoAsiento = tmp + oldNo; });
+                    a._tmpNo = tmp + oldNo;
+                    a.no = newNo;
+                }
+            });
+            // Paso 2: aplicar números finales
+            db.asientos.forEach((a, k) => {
+                if(a._tmpNo !== undefined){
+                    db.movimientos.forEach(m => { if(m.noAsiento === a._tmpNo) m.noAsiento = k + 1; });
+                    (db.polizas||[]).forEach(pol => { if(pol._tmpNoAsiento === a._tmpNo){ pol.noAsiento = k + 1; delete pol._tmpNoAsiento; } });
+                    delete a._tmpNo;
+                }
+            });
+            await guardarDB();
+            filtrarDatos('a');
+            showSuccess('Asiento reordenado y renumerado');
         };
 
         function resetManualCta(){
@@ -3008,7 +3059,8 @@
                 if (fi) rows = rows.filter(a => a.fecha >= fi);
                 if (ff) rows = rows.filter(a => a.fecha <= ff);
                 const tipoLabel = t2 => { if(!t2)return''; if(t2.includes('PyG')||t2.includes('PYG')||t2.includes('AjustePyG'))return'<span class="clasif-badge clasif-pyg">PyG</span>'; if(t2.includes('Ajuste'))return'<span class="clasif-badge clasif-inv">Ajuste</span>'; return'<span style="font-size:0.68rem;color:var(--muted);">Normal</span>'; };
-                document.getElementById('lista-a').innerHTML = rows.map(r => `<tr><td class="td-code">${r.no}</td><td>${r.fecha}</td><td>${r.concepto||''}</td><td>${tipoLabel(r.tipo)}</td><td><div class="action-btns"><button class="btn-icon btn-edit-icon" onclick="editarAsiento('${r.id}')">✏</button><button class="btn-icon btn-del-icon" onclick="eliminarAsiento('${r.id}')">🗑</button></div></td></tr>`).join('') || '<tr class="empty-row"><td colspan="5">Sin resultados</td></tr>';
+                const totalAsientos = db.asientos.length;
+                document.getElementById('lista-a').innerHTML = rows.map(r => `<tr><td class="td-code">${r.no}</td><td>${r.fecha}</td><td>${r.concepto||''}</td><td>${tipoLabel(r.tipo)}</td><td><div class="action-btns"><button class="btn-icon btn-ghost" data-arrow-key="a-${r._i}-up" style="font-size:0.7rem;padding:4px 6px;" onclick="arrowClick(this,()=>moverAsiento(${r._i},-1))" title="Toca 2 veces para subir" ${r._i===0?'disabled':''}>↑</button><button class="btn-icon btn-ghost" data-arrow-key="a-${r._i}-dn" style="font-size:0.7rem;padding:4px 6px;" onclick="arrowClick(this,()=>moverAsiento(${r._i},1))" title="Toca 2 veces para bajar" ${r._i===totalAsientos-1?'disabled':''}>↓</button></div></td><td><div class="action-btns"><button class="btn-icon btn-edit-icon" onclick="editarAsiento('${r.id}')">✏</button><button class="btn-icon btn-del-icon" onclick="eliminarAsiento('${r.id}')">🗑</button></div></td></tr>`).join('') || '<tr class="empty-row"><td colspan="6">Sin resultados</td></tr>';
                 document.getElementById('datos-a-count').textContent = `(${rows.length} de ${db.asientos.length})`;
             }
         };
@@ -4828,6 +4880,7 @@
 
         let editPolId = null;
         let polTempMovs = [];
+        let polMovOrdenManual = false;
         let polAsientoRef = null;
 
         // ── Config toggle ──
@@ -5002,21 +5055,28 @@
         function renderPolMovimientos() {
             const tbody = document.getElementById('pol-mov-body');
             if (!polTempMovs.length) {
-                tbody.innerHTML = '<tr class="empty-row"><td colspan="6">Sin movimientos</td></tr>';
+                tbody.innerHTML = '<tr class="empty-row"><td colspan="7">Sin movimientos</td></tr>';
                 return;
             }
             let sumD = 0, sumH = 0;
-            // Ordenar: primero Debe luego Haber, dentro de cada grupo por subcuenta
-            const _polOrdenados = polTempMovs.map((m,idx)=>({...m,_oi:idx})).sort((a,b)=>{
-                const ga=(a.debe>0)?0:1,gb=(b.debe>0)?0:1;
-                if(ga!==gb)return ga-gb;
-                return (a.subcuenta||'').localeCompare(b.subcuenta||'');
-            });
-            tbody.innerHTML = _polOrdenados.map((m, _j) => { const i = m._oi;
+            // Si no hay orden manual, auto-ordenar: primero Debe luego Haber, por subcuenta
+            if (!polMovOrdenManual) {
+                const sorted = polTempMovs.map((m,idx)=>({...m,_oi:idx})).sort((a,b)=>{
+                    const ga=(a.debe>0)?0:1,gb=(b.debe>0)?0:1;
+                    if(ga!==gb)return ga-gb;
+                    return (a.subcuenta||'').localeCompare(b.subcuenta||'');
+                });
+                const reordered = sorted.map(m=>{const{_oi,...rest}=m;return rest;});
+                polTempMovs.splice(0, polTempMovs.length, ...reordered);
+            }
+            const n = polTempMovs.length;
+            tbody.innerHTML = polTempMovs.map((m, i) => {
                 sumD += m.debe; sumH += m.haber;
                 const pendVal = m.debeOriginal > 0 ? m.debePendiente : m.haberPendiente;
                 const pendStr = pendVal > 0.001 ? '$' + pendVal.toFixed(2) : '✓';
                 const pendColor = pendStr === '✓' ? 'var(--green)' : 'var(--amber)';
+                const upDis = i === 0 ? ' disabled' : '';
+                const downDis = i === n-1 ? ' disabled' : '';
                 return '<tr>' +
                     '<td class="td-code" style="font-size:0.72rem;">' + m.cuentaMayor + '</td>' +
                     '<td class="td-code">' + m.subcuenta + '</td>' +
@@ -5024,6 +5084,7 @@
                     '<td><input type="number" step="0.01" min="0" max="' + m.debePendiente.toFixed(2) + '" value="' + (m.debe > 0 ? m.debe.toFixed(2) : '') + '" onchange="polEditMov(' + i + ',\'debe\',this.value)" style="width:80px;padding:5px 6px;font-size:0.8rem;text-align:right;border:1.5px solid var(--border);border-radius:6px;"' + (m.debeOriginal <= 0 ? ' disabled' : '') + '></td>' +
                     '<td><input type="number" step="0.01" min="0" max="' + m.haberPendiente.toFixed(2) + '" value="' + (m.haber > 0 ? m.haber.toFixed(2) : '') + '" onchange="polEditMov(' + i + ',\'haber\',this.value)" style="width:80px;padding:5px 6px;font-size:0.8rem;text-align:right;border:1.5px solid var(--border);border-radius:6px;"' + (m.haberOriginal <= 0 ? ' disabled' : '') + '></td>' +
                     '<td style="font-size:0.72rem;font-weight:700;color:' + pendColor + ';text-align:center;">' + pendStr + '</td>' +
+                    '<td><div class="action-btns" style="gap:2px;"><button class="btn-icon btn-secondary" style="padding:3px 5px;font-size:0.7rem;min-width:22px;border-radius:5px;" onclick="moverPolMov(' + i + ',-1)"' + upDis + '>▲</button><button class="btn-icon btn-secondary" style="padding:3px 5px;font-size:0.7rem;min-width:22px;border-radius:5px;" onclick="moverPolMov(' + i + ',1)"' + downDis + '>▼</button></div></td>' +
                     '</tr>';
             }).join('');
 
@@ -5037,6 +5098,13 @@
             }
         }
 
+        window.moverPolMov = function(i, dir) {
+            const j = i + dir;
+            if (j < 0 || j >= polTempMovs.length) return;
+            [polTempMovs[i], polTempMovs[j]] = [polTempMovs[j], polTempMovs[i]];
+            polMovOrdenManual = true;
+            renderPolMovimientos();
+        };
         window.polEditMov = function(i, campo, valor) {
             const v = parseFloat(valor) || 0;
             const m = polTempMovs[i];
@@ -5165,6 +5233,7 @@
             editPolId = null;
             polAsientoRef = null;
             polTempMovs = [];
+            polMovOrdenManual = false;
             document.getElementById('pol_tipo').value = '';
             document.getElementById('pol_folio_display').value = '';
             document.getElementById('pol_fecha').value = new Date().toISOString().split('T')[0];
