@@ -305,7 +305,6 @@
             border-radius: 9px; box-shadow: 0 8px 24px rgba(15,17,23,0.13);
             z-index: 9999; max-height: 240px; overflow-y: auto;
         }
-        .ss-wrap:not(.has-value) .ss-dropdown { right: 0; }
         .ss-dropdown.ss-open { display: block; }
         .ss-option {
             padding: 9px 14px; font-size: 0.85rem; cursor: pointer;
@@ -993,6 +992,7 @@
                         <option value="subcuenta">Subcuenta (detallado)</option>
                         <option value="cuenta">Cuenta Mayor (consolidado)</option>
                     </select>
+
                 </div>
                 <div id="opt-hoja" class="rep-opt" style="display:none;">
                     <div style="font-size:0.64rem;font-weight:700;color:var(--muted);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:6px;">Agrupar por</div>
@@ -1115,6 +1115,7 @@
             var ico   = document.getElementById('rep-cfg-icon');
             if (!panel) return;
             panel.style.maxHeight = panel.scrollHeight + 200 + 'px';
+            panel.style.overflow = 'visible';
             if(lbl) lbl.textContent = 'Ocultar';
             if(ico) ico.textContent = '✕';
             if(btn) { btn.style.background='var(--ink)'; btn.style.color='#fff'; btn.style.borderColor='var(--ink)'; }
@@ -1129,6 +1130,7 @@
             var isOpen = panel.style.maxHeight !== '0px' && panel.style.maxHeight !== '';
             if (isOpen) {
                 panel.style.maxHeight = '0px';
+                panel.style.overflow = 'hidden';
                 panel.style.padding = '0 14px';
                 if(lbl) lbl.textContent = 'Configurar';
                 if(ico) ico.textContent = '⚙️';
@@ -1588,6 +1590,32 @@
             'fil-s-cuenta': () => { if(typeof filtrarDatos==='function') filtrarDatos('s'); },
         };
 
+        let _ssSelecting = false; // bandera para que blur no cancele una selección en curso
+
+        function _ssPositionDrop(id) {
+            const wrap = document.getElementById('ss-wrap-' + id);
+            const drop = document.getElementById('ss-drop-' + id);
+            if (!wrap || !drop) return;
+            const r = wrap.getBoundingClientRect();
+            // Si el elemento no está visible aún (display:none en un padre), reintentar en el next frame
+            if (r.width === 0 && r.height === 0) {
+                requestAnimationFrame(() => _ssPositionDrop(id));
+                return;
+            }
+            drop.style.left  = r.left + 'px';
+            drop.style.width = r.width + 'px';
+            // Decide if dropdown goes down or up
+            const spaceBelow = window.innerHeight - r.bottom;
+            const dropH = Math.min(240, drop.scrollHeight || 240);
+            if (spaceBelow >= dropH || spaceBelow >= 120) {
+                drop.style.top    = (r.bottom + 2) + 'px';
+                drop.style.bottom = '';
+            } else {
+                drop.style.bottom = (window.innerHeight - r.top + 2) + 'px';
+                drop.style.top    = '';
+            }
+        }
+
         function _ssRenderDrop(id, query) {
             const drop = document.getElementById('ss-drop-' + id);
             if (!drop) return;
@@ -1612,7 +1640,9 @@
                 drop.querySelectorAll('.ss-option').forEach(opt => {
                     opt.addEventListener('mousedown', e => {
                         e.preventDefault();
+                        _ssSelecting = true;
                         ssSelect(id, opt.dataset.value);
+                        setTimeout(() => { _ssSelecting = false; }, 300);
                     });
                 });
             }
@@ -1683,7 +1713,9 @@
                 // Evitar que el blur cancele el click en el botón X (desktop y móvil)
                 const btn = inp.parentElement ? inp.parentElement.querySelector('.ss-btn') : null;
                 if (btn) {
-                    btn.addEventListener('mousedown', e => e.preventDefault());
+                    // Desktop: mousedown previene blur, ejecuta el clear y cancela el onclick posterior
+                    btn.addEventListener('mousedown', e => { e.preventDefault(); ssClear(id); });
+                    btn.addEventListener('click', e => { e.preventDefault(); e.stopImmediatePropagation(); });
                     btn.addEventListener('touchstart', e => { e.preventDefault(); ssClear(id); }, { passive: false });
                 }
 
@@ -1705,6 +1737,7 @@
 
                 inp.addEventListener('blur', () => {
                     setTimeout(() => {
+                        if (_ssSelecting) return; // una opción está siendo seleccionada, no interferir
                         drop.classList.remove('ss-open');
                         const val = ssGet(id);
                         const wrap = document.getElementById('ss-wrap-' + id);
@@ -3766,29 +3799,52 @@
                 grupos[clave][m.idAsiento].d+=Number(m.debe)||0;
                 grupos[clave][m.idAsiento].h+=Number(m.haber)||0;
             });
-            const claves=Object.keys(grupos).sort();
+
+            // Calcular saldo inicial (movimientos ANTES de fechas.fi) por clave
+            const saldosIni={};
+            db.movimientos.forEach(m=>{
+                const ast=db.asientos.find(a=>a.id===m.idAsiento);
+                if(!ast)return;
+                const f=new Date(ast.fecha+'T00:00:00');
+                if(f>=fechas.fi)return; // solo anteriores
+                const clave=(nivel==='cuenta')?getPadre(m.subcuenta):m.subcuenta;
+                if(!saldosIni[clave])saldosIni[clave]=0;
+                saldosIni[clave]+=(Number(m.debe)||0)-(Number(m.haber)||0);
+            });
+
+            // Unión de claves del período + claves con saldo inicial
+            const todasClaves=new Set([...Object.keys(grupos),...Object.keys(saldosIni)]);
+            const claves=[...todasClaves].sort();
             if(claves.length===0)return{vacio:true};
             let rows='',gtD=0,gtH=0;
             claves.forEach(clave=>{
-                // Ordenar entradas por fecha y número de asiento
-                const entradas=Object.values(grupos[clave]).sort((a,b)=>Number(a.ast.no)-Number(b.ast.no));
                 const nombre=(nivel==='cuenta')?getNomCuenta(clave):getNomSub(clave);
-                let sumD=0,sumH=0,saldo=0;
-                rows+=`<tr class="enc-row"><td colspan="6">${clave} — ${nombre}</td></tr>`;
-                rows+=`<tr class="col-head"><td>Fecha</td><td>Asiento</td><td>Concepto</td><td class="num">Debe</td><td class="num">Haber</td><td class="num">Saldo</td></tr>`;
+                const saldoIni=saldosIni[clave]||0;
+                let sumD=0,sumH=0,saldo=saldoIni;
+                rows+=`<tr class="enc-row"><td colspan="7">${clave} — ${nombre}</td></tr>`;
+                rows+=`<tr class="col-head"><td>Fecha</td><td>Asiento</td><td>Concepto</td><td class="num">Debe</td><td class="num">Haber</td><td class="num">Saldo Deudor</td><td class="num">Saldo Acreedor</td></tr>`;
+                // Fila de saldo inicial si existe
+                if(saldoIni!==0){
+                    const sdD=saldoIni>0?fmtMonZ(saldoIni):'';
+                    const sdH=saldoIni<0?fmtMonZ(Math.abs(saldoIni)):'';
+                    rows+=`<tr style="font-style:italic;color:#555;"><td colspan="3" style="text-align:right;font-weight:600;">Saldo Inicial</td><td class="num"></td><td class="num"></td><td class="num saldo">${sdD}</td><td class="num saldo">${sdH}</td></tr>`;
+                }
+                const entradas=grupos[clave]?Object.values(grupos[clave]).sort((a,b)=>Number(a.ast.no)-Number(b.ast.no)):[];
                 entradas.forEach(({ast,d,h})=>{
                     saldo+=d-h;sumD+=d;sumH+=h;
-                    const lbl=saldo===0?'—':`${fmtMonZ(Math.abs(saldo))} ${saldo>0?'D':'H'}`;
-                    rows+=`<tr><td>${fmtFecha(ast.fecha)}</td><td>${ast.no}</td><td>${ast.concepto}</td><td class="num">${fmtMon(d)}</td><td class="num">${fmtMon(h)}</td><td class="num saldo">${lbl}</td></tr>`;
+                    const sdD=saldo>0?fmtMonZ(saldo):'';
+                    const sdH=saldo<0?fmtMonZ(Math.abs(saldo)):'';
+                    rows+=`<tr><td>${fmtFecha(ast.fecha)}</td><td>${ast.no}</td><td>${ast.concepto}</td><td class="num">${fmtMon(d)}</td><td class="num">${fmtMon(h)}</td><td class="num saldo">${sdD}</td><td class="num saldo">${sdH}</td></tr>`;
                 });
-                const sf=saldo===0?'—':`${fmtMonZ(Math.abs(saldo))} ${saldo>0?'D':'H'}`;
-                rows+=`<tr class="tot-row"><td colspan="3" style="text-align:right;">Total:</td><td class="num">${fmtMonZ(sumD)}</td><td class="num">${fmtMonZ(sumH)}</td><td class="num saldo">${sf}</td></tr>`;
-                rows+=`<tr class="spacer-row"><td colspan="6"></td></tr>`;
+                const sfD=saldo>0?fmtMonZ(saldo):'';
+                const sfH=saldo<0?fmtMonZ(Math.abs(saldo)):'';
+                rows+=`<tr class="tot-row"><td colspan="3" style="text-align:right;">Total:</td><td class="num">${fmtMonZ(sumD)}</td><td class="num">${fmtMonZ(sumH)}</td><td class="num saldo">${sfD}</td><td class="num saldo">${sfH}</td></tr>`;
+                rows+=`<tr class="spacer-row"><td colspan="7"></td></tr>`;
                 gtD+=sumD;gtH+=sumH;
             });
-            const cgMayor = `<colgroup><col class="col-fecha"><col class="col-asiento"><col class="col-nombre"><col class="col-num"><col class="col-num"><col class="col-saldo"></colgroup>`;
+            const cgMayor = `<colgroup><col class="col-fecha"><col class="col-asiento"><col class="col-nombre"><col class="col-num"><col class="col-num"><col class="col-saldo"><col class="col-saldo"></colgroup>`;
             return {
-                html:`<table>${cgMayor}<thead><tr><th>Fecha</th><th>Asiento</th><th>Concepto</th><th class="num">Debe</th><th class="num">Haber</th><th class="num">Saldo</th></tr></thead><tbody>${rows}</tbody></table>`,
+                html:`<table>${cgMayor}<thead><tr><th>Fecha</th><th>Asiento</th><th>Concepto</th><th class="num">Debe</th><th class="num">Haber</th><th class="num">Saldo Deudor</th><th class="num">Saldo Acreedor</th></tr></thead><tbody>${rows}</tbody></table>`,
                 resumen:`${claves.length} cuentas &nbsp;|&nbsp; Debe: ${fmtMonZ(gtD)} &nbsp;|&nbsp; Haber: ${fmtMonZ(gtH)}`
             };
         }
@@ -4145,48 +4201,82 @@
                 grupos[clave][m.idAsiento].h += Number(m.haber) || 0;
             });
 
-            const claves = Object.keys(grupos).sort();
+            // Calcular saldo inicial (movimientos ANTES de fechas.fi) por clave
+            const saldosIni = {};
+            db.movimientos.forEach(m => {
+                const ast = db.asientos.find(a => a.id === m.idAsiento);
+                if (!ast) return;
+                const f = new Date(ast.fecha + 'T00:00:00');
+                if (f >= fechas.fi) return; // solo anteriores a la fecha de inicio
+                const clave = (nivel === 'cuenta') ? getPadre(m.subcuenta) : m.subcuenta;
+                if (!saldosIni[clave]) saldosIni[clave] = 0;
+                saldosIni[clave] += (Number(m.debe) || 0) - (Number(m.haber) || 0);
+            });
+
+            // Unión de claves del período + claves con saldo inicial
+            const todasClaves = new Set([...Object.keys(grupos), ...Object.keys(saldosIni)]);
+            const claves = [...todasClaves].sort();
             if (claves.length === 0){showWarn("No hay movimientos en ese período.");return '';}
 
             let rows = '';
             claves.forEach(clave => {
-                const entradas = Object.values(grupos[clave]).sort((a,b) =>
-                    a.ast.fecha.localeCompare(b.ast.fecha) || Number(a.ast.no) - Number(b.ast.no));
+                const entradas = grupos[clave]
+                    ? Object.values(grupos[clave]).sort((a,b) =>
+                        a.ast.fecha.localeCompare(b.ast.fecha) || Number(a.ast.no) - Number(b.ast.no))
+                    : [];
 
                 const nombre = (nivel === 'cuenta') ? getNomCuenta(clave) : getNomSub(clave);
-                let sumD = 0, sumH = 0, saldo = 0;
+                const saldoIni = saldosIni[clave] || 0;
+                let sumD = 0, sumH = 0, saldo = saldoIni;
 
-                rows += `<tr class="enc-row"><td colspan="6">Cuenta: ${clave} — ${nombre}</td></tr>`;
-                rows += `<tr class="col-head"><td>Fecha</td><td>Asiento</td><td>Concepto</td><td class="num">Debe</td><td class="num">Haber</td><td class="num">Saldo</td></tr>`;
+                rows += `<tr class="enc-row"><td colspan="7">Cuenta: ${clave} — ${nombre}</td></tr>`;
+                rows += `<tr class="col-head"><td>Fecha</td><td>Asiento</td><td>Concepto</td><td class="num">Debe</td><td class="num">Haber</td><td class="num">Saldo Deudor</td><td class="num">Saldo Acreedor</td></tr>`;
+
+                // Fila de saldo inicial (solo si es distinto de cero)
+                if (saldoIni !== 0) {
+                    const siD = saldoIni > 0 ? fmtMonZ(saldoIni) : '';
+                    const siH = saldoIni < 0 ? fmtMonZ(Math.abs(saldoIni)) : '';
+                    rows += `<tr style="font-style:italic;color:#555;">
+                        <td colspan="3" style="text-align:right;font-weight:600;padding-right:10px;">Saldo Inicial</td>
+                        <td class="num"></td>
+                        <td class="num"></td>
+                        <td class="num saldo">${siD}</td>
+                        <td class="num saldo">${siH}</td>
+                    </tr>`;
+                }
 
                 entradas.forEach(({ ast, d, h }) => {
                     saldo += d - h;
                     sumD  += d;
                     sumH  += h;
-                    const labelSaldo = saldo === 0 ? '—' : `${fmtMonZ(Math.abs(saldo))} ${saldo > 0 ? 'D' : 'H'}`;
+                    const sdD = saldo > 0 ? fmtMonZ(saldo) : '';
+                    const sdH = saldo < 0 ? fmtMonZ(Math.abs(saldo)) : '';
                     rows += `<tr>
                         <td>${fmtFecha(ast.fecha)}</td>
                         <td>${ast.no}</td>
                         <td>${ast.concepto}</td>
                         <td class="num">${fmtMon(d)}</td>
                         <td class="num">${fmtMon(h)}</td>
-                        <td class="num saldo">${labelSaldo}</td>
+                        <td class="num saldo">${sdD}</td>
+                        <td class="num saldo">${sdH}</td>
                     </tr>`;
                 });
 
-                const saldoFinal = saldo === 0 ? '—' : `${fmtMonZ(Math.abs(saldo))} ${saldo > 0 ? 'D' : 'H'}`;
+                const sfD = saldo > 0 ? fmtMonZ(saldo) : '';
+                const sfH = saldo < 0 ? fmtMonZ(Math.abs(saldo)) : '';
                 rows += `<tr class="tot-row">
                     <td colspan="3" style="text-align:right;font-weight:700;">Total Sumas:</td>
                     <td class="num">${fmtMonZ(sumD)}</td>
                     <td class="num">${fmtMonZ(sumH)}</td>
-                    <td class="num saldo">${saldoFinal}</td>
+                    <td class="num saldo">${sfD}</td>
+                    <td class="num saldo">${sfH}</td>
                 </tr>`;
-                rows += `<tr class="spacer-row"><td colspan="6"></td></tr>`;
+                rows += `<tr class="spacer-row"><td colspan="7"></td></tr>`;
             });
 
             const titulo = nivel === 'cuenta' ? 'Libro Mayor — Por Cuenta' : 'Libro Mayor — Por Subcuenta';
             return wrapTable(titulo, fechas,
-                `<table><thead><tr><th>Fecha</th><th>Asiento</th><th>Concepto</th><th>Debe</th><th>Haber</th><th>Saldo</th></tr></thead><tbody>${rows}</tbody></table>`);
+                `<table><thead><tr><th>Fecha</th><th>Asiento</th><th>Concepto</th><th>Debe</th><th>Haber</th><th>Saldo Deudor</th><th>Saldo Acreedor</th></tr></thead><tbody>${rows}</tbody></table>`);
         }
 
         // ══════════════════════════════════════════════════════════
