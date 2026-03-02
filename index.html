@@ -3633,17 +3633,14 @@
 
         // ── Helper: sort movs (Debe first, then Haber; each group by subcuenta code) ──
         function sortMovs(movs) {
-            return movs.slice().sort((a,b) => {
-                const ga = (a.debe > 0) ? 0 : 1, gb = (b.debe > 0) ? 0 : 1;
-                if (ga !== gb) return ga - gb;
-                return (a.subcuenta||'').localeCompare(b.subcuenta||'');
-            });
+            // Preservar el orden de inserción (orden en que se guardaron en el asiento)
+            return movs.slice();
         }
 
         function buildTablaInlineDiario(fechas, vista) {
             vista = vista || 'subcuentas';
             const mapA = mapAsientosFecha(fechas);
-            const asientosFiltrados = Object.values(mapA).sort((a,b)=>a.fecha.localeCompare(b.fecha)||Number(a.no)-Number(b.no));
+            const asientosFiltrados = Object.values(mapA).sort((a,b)=>Number(a.no)-Number(b.no));
             if (asientosFiltrados.length===0) return {vacio:true};
             let rows='', totalD=0, totalH=0;
 
@@ -3663,13 +3660,8 @@
                         byCtaMayor[c].d += Number(m.debe)||0;
                         byCtaMayor[c].h += Number(m.haber)||0;
                     });
-                    // Sort: debe-first by code
-                    const cuentasSorted = Object.keys(byCtaMayor).sort((a,b) => {
-                        const ga = byCtaMayor[a].d > 0 ? 0 : 1;
-                        const gb = byCtaMayor[b].d > 0 ? 0 : 1;
-                        if (ga !== gb) return ga - gb;
-                        return a.localeCompare(b);
-                    });
+                    // Preservar el orden de inserción de las cuentas
+                    const cuentasSorted = Object.keys(byCtaMayor);
                     rows += `<tr class="enc-row"><td colspan="4">Asiento N° ${a.no} — ${fmtFecha(a.fecha)} — ${fmtTipo(a.tipo)}</td></tr>`;
                     rows += `<tr class="col-head"><td>Cta. Mayor</td><td>Nombre</td><td class="num">Debe</td><td class="num">Haber</td></tr>`;
                     cuentasSorted.forEach(c => {
@@ -3779,7 +3771,7 @@
             let rows='',gtD=0,gtH=0;
             claves.forEach(clave=>{
                 // Ordenar entradas por fecha y número de asiento
-                const entradas=Object.values(grupos[clave]).sort((a,b)=>a.ast.fecha.localeCompare(b.ast.fecha)||Number(a.ast.no)-Number(b.ast.no));
+                const entradas=Object.values(grupos[clave]).sort((a,b)=>Number(a.ast.no)-Number(b.ast.no));
                 const nombre=(nivel==='cuenta')?getNomCuenta(clave):getNomSub(clave);
                 let sumD=0,sumH=0,saldo=0;
                 rows+=`<tr class="enc-row"><td colspan="6">${clave} — ${nombre}</td></tr>`;
@@ -4036,7 +4028,7 @@
             vista = vista || 'subcuentas';
             const mapA = mapAsientosFecha(fechas);
             const asientosFiltrados = Object.values(mapA)
-                .sort((a,b) => a.fecha.localeCompare(b.fecha) || Number(a.no) - Number(b.no));
+                .sort((a,b) => Number(a.no) - Number(b.no));
 
             if (asientosFiltrados.length === 0){showWarn("No hay asientos en ese período.");return '';}
 
@@ -5265,7 +5257,7 @@
                     pendientes.push({ a, pendD, pendH });
                 }
             });
-            pendientes.sort((x, y) => x.a.fecha.localeCompare(y.a.fecha) || x.a.no - y.a.no);
+            pendientes.sort((x, y) => x.a.no - y.a.no);
 
             const badge = document.getElementById('pol-pend-badge');
             const lista = document.getElementById('pol-pend-lista');
