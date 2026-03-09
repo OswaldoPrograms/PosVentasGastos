@@ -2714,21 +2714,9 @@
             let sd=0,sh=0;const tb=document.getElementById('lista-temp-mov');
             if(tempMovimientos.length===0){tb.innerHTML='<tr class="empty-row"><td colspan="6">Sin movimientos</td></tr>';}
             else{
-            // Si no hay orden manual, auto-ordenar: primero Debe, luego Haber; por código de subcuenta
+            // Respetar siempre el orden registrado en el asiento, sin reordenar
             let _lista;
-            if(tempMovOrdenManual){
-                _lista=tempMovimientos.map((m,idx)=>({...m,_oi:idx}));
-            } else {
-                _lista=tempMovimientos.map((m,idx)=>({...m,_oi:idx})).sort((a,b)=>{
-                    const ga=(a.debe>0)?0:1,gb=(b.debe>0)?0:1;
-                    if(ga!==gb)return ga-gb;
-                    return (a.subcuenta||'').localeCompare(b.subcuenta||'');
-                });
-                // Sincronizar el array con el orden visual si no es manual
-                const ordered=_lista.map(m=>{const {_oi,...rest}=m;return rest;});
-                tempMovimientos.splice(0,tempMovimientos.length,...ordered);
-                _lista=tempMovimientos.map((m,idx)=>({...m,_oi:idx}));
-            }
+            _lista=tempMovimientos.map((m,idx)=>({...m,_oi:idx}));
             const n=_lista.length;
             tb.innerHTML=_lista.map((m,_j)=>{const i=m._oi;sd+=m.debe;sh+=m.haber;
                 let badge='';
@@ -5181,16 +5169,7 @@
                 return;
             }
             let sumD = 0, sumH = 0;
-            // Si no hay orden manual, auto-ordenar: primero Debe luego Haber, por subcuenta
-            if (!polMovOrdenManual) {
-                const sorted = polTempMovs.map((m,idx)=>({...m,_oi:idx})).sort((a,b)=>{
-                    const ga=(a.debe>0)?0:1,gb=(b.debe>0)?0:1;
-                    if(ga!==gb)return ga-gb;
-                    return (a.subcuenta||'').localeCompare(b.subcuenta||'');
-                });
-                const reordered = sorted.map(m=>{const{_oi,...rest}=m;return rest;});
-                polTempMovs.splice(0, polTempMovs.length, ...reordered);
-            }
+            // Respetar siempre el orden registrado en la póliza, sin reordenar
             const n = polTempMovs.length;
             tbody.innerHTML = polTempMovs.map((m, i) => {
                 sumD += m.debe; sumH += m.haber;
@@ -5527,12 +5506,8 @@
 
             const cs = 'border:1px solid #999;padding:4px 4px;font-size:11px;vertical-align:middle;';
             let movRows = '';
-            // Ordenar: primero Debe luego Haber, dentro de cada grupo por subcuenta
-            const _movsSorted = (p.movimientos||[]).slice().sort((a,b)=>{
-                const ga=(a.debe>0)?0:1,gb=(b.debe>0)?0:1;
-                if(ga!==gb)return ga-gb;
-                return (a.subcuenta||'').localeCompare(b.subcuenta||'');
-            });
+            // Respetar siempre el orden registrado, sin reordenar al imprimir
+            const _movsSorted = (p.movimientos||[]).slice();
             _movsSorted.forEach(m => {
                 const esAbono = m.haber > 0;
                 const indentStyle = esAbono ? 'padding-left:18px;' : '';
