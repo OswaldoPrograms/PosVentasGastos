@@ -8,22 +8,38 @@
     <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
     <style>
         :root {
-            --ink:       #0f1117;
-            --ink-soft:  #1c2030;
-            --surface:   #f5f4f0;
-            --card:      #ffffff;
-            --border:    #e8e6e0;
-            --accent:    #1a3c5e;
-            --accent-2:  #c8a96e;
-            --green:     #1a6648;
-            --green-lt:  #e8f5ef;
-            --red:       #8b1a1a;
-            --red-lt:    #fdf0f0;
-            --amber:     #92600a;
-            --amber-lt:  #fdf5e6;
-            --muted:     #6b7280;
-            --radius:    12px;
-            --shadow:    0 2px 16px rgba(15,17,23,0.07);
+            /* ── Nueva paleta vibrante ── */
+            --ink:        #0f172a;
+            --ink-soft:   #1e293b;
+            --surface:    #f0f4ff;
+            --card:       #ffffff;
+            --border:     #e2e8f0;
+            --border-lt:  #f1f5f9;
+
+            /* Acento principal: índigo profundo */
+            --accent:     #4f46e5;
+            --accent-dk:  #3730a3;
+            --accent-lt:  #eef2ff;
+            --accent-2:   #f59e0b;   /* ámbar dorado */
+
+            /* Semáforos */
+            --green:      #059669;
+            --green-lt:   #ecfdf5;
+            --green-dk:   #047857;
+            --red:        #dc2626;
+            --red-lt:     #fef2f2;
+            --amber:      #d97706;
+            --amber-lt:   #fffbeb;
+            --amber-dk:   #b45309;
+            --purple:     #7c3aed;
+            --purple-lt:  #f5f3ff;
+            --teal:       #0d9488;
+            --teal-lt:    #f0fdfa;
+
+            --muted:      #64748b;
+            --radius:     14px;
+            --shadow:     0 4px 24px rgba(79,70,229,0.08);
+            --shadow-sm:  0 2px 8px rgba(15,23,42,0.06);
         }
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
         body {
@@ -36,69 +52,78 @@
 
         /* ── HEADER ── */
         header {
-            background: var(--ink);
+            background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 60%, #312e81 100%);
             color: #fff;
             padding: 18px 20px 14px;
             position: sticky; top: 0; z-index: 200;
             display: flex; align-items: center; justify-content: space-between;
-            box-shadow: 0 1px 0 rgba(255,255,255,0.06);
+            box-shadow: 0 2px 20px rgba(79,70,229,0.35);
         }
         .header-brand { display: flex; flex-direction: column; }
         .header-title { font-family: 'DM Serif Display', serif; font-size: 1.25rem; color: #fff; line-height: 1; }
-        .header-sub { font-size: 0.62rem; color: var(--accent-2); font-weight: 500; letter-spacing: 0.14em; text-transform: uppercase; margin-top: 3px; }
+        .header-sub { font-size: 0.62rem; color: #f59e0b; font-weight: 600; letter-spacing: 0.16em; text-transform: uppercase; margin-top: 3px; }
         #sync-status {
             display: flex; align-items: center; gap: 6px;
-            background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.1);
+            background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.15);
             border-radius: 20px; padding: 5px 12px;
-            font-size: 0.68rem; font-weight: 500; color: rgba(255,255,255,0.65);
+            font-size: 0.68rem; font-weight: 500; color: rgba(255,255,255,0.7);
+            backdrop-filter: blur(4px);
         }
-        #sync-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--accent-2); animation: blink 1.4s ease-in-out infinite; }
-        #sync-dot.online  { background: #4ade80; animation: none; }
+        #sync-dot { width: 7px; height: 7px; border-radius: 50%; background: #f59e0b; animation: blink 1.4s ease-in-out infinite; }
+        #sync-dot.online  { background: #34d399; animation: none; }
         #sync-dot.offline { background: #f87171; animation: none; }
         @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.2} }
 
         /* ── WINDOWS ── */
         .window { display: none; padding: 18px 16px; animation: fadeUp 0.25s ease; }
         .window.active { display: block; }
-        @keyframes fadeUp { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
+        @keyframes fadeUp { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)} }
 
         /* ── SECTION HEADER ── */
         .section-header { margin-bottom: 18px; }
-        .section-number { font-size: 0.62rem; font-weight: 700; color: var(--accent-2); letter-spacing: 0.16em; text-transform: uppercase; margin-bottom: 4px; }
+        .section-number { font-size: 0.62rem; font-weight: 700; color: var(--accent); letter-spacing: 0.16em; text-transform: uppercase; margin-bottom: 4px; }
         .section-title { font-family: 'DM Serif Display', serif; font-size: 1.6rem; color: var(--ink); margin: 0; display: flex; align-items: center; gap: 10px; }
 
         /* ── CARDS ── */
-        .card { background: var(--card); border-radius: var(--radius); padding: 20px; box-shadow: var(--shadow); margin-bottom: 16px; border: 1px solid var(--border); }
+        .card {
+            background: var(--card); border-radius: var(--radius);
+            padding: 20px; box-shadow: var(--shadow-sm); margin-bottom: 16px;
+            border: 1px solid var(--border);
+            transition: box-shadow 0.2s;
+        }
         .card-title {
             font-size: 0.68rem; font-weight: 700; color: var(--muted);
             letter-spacing: 0.13em; text-transform: uppercase;
-            margin: 0 0 16px; padding-bottom: 12px; border-bottom: 1px solid var(--border);
+            margin: 0 0 16px; padding-bottom: 12px; border-bottom: 1px solid var(--border-lt);
             display: flex; justify-content: space-between; align-items: center;
         }
 
         /* ── BADGES ── */
-        .edit-badge { background: var(--amber-lt); color: var(--amber); border: 1px solid #f0d08a; padding: 2px 10px; border-radius: 20px; font-size: 0.62rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; }
+        .edit-badge { background: var(--amber-lt); color: var(--amber); border: 1px solid #fde68a; padding: 2px 10px; border-radius: 20px; font-size: 0.62rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; }
 
         /* ── FORMULARIOS ── */
         .form-group { margin-bottom: 14px; }
         label { display: block; font-size: 0.74rem; font-weight: 600; color: var(--muted); margin-bottom: 6px; letter-spacing: 0.04em; }
         input, select {
             width: 100%; padding: 11px 14px;
-            border: 1.5px solid var(--border); border-radius: 8px;
+            border: 1.5px solid var(--border); border-radius: 10px;
             font-size: 0.93rem; font-family: 'DM Sans', sans-serif;
-            background: #fafaf8; color: var(--ink);
+            background: #fafbff; color: var(--ink);
             transition: border-color 0.15s, box-shadow 0.15s;
             appearance: none; -webkit-appearance: none;
         }
-        input:focus, select:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(26,60,94,0.1); background: #fff; }
+        input:focus, select:focus {
+            outline: none; border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(79,70,229,0.15);
+            background: #fff;
+        }
         .hint { font-size: 0.72rem; color: var(--green); margin-top: 5px; font-weight: 600; }
 
         /* ── CUSTOM CHECKBOX ── */
-        /* Ocultar el checkbox nativo en todos los contextos */
         input[type="checkbox"] {
             -webkit-appearance: none; -moz-appearance: none; appearance: none;
             width: 20px; height: 20px; min-width: 20px;
-            border: 2px solid #b8c8d8; border-radius: 5px;
+            border: 2px solid #c7d2fe; border-radius: 6px;
             background: #fff; cursor: pointer;
             position: relative; flex-shrink: 0;
             transition: background 0.15s, border-color 0.15s, box-shadow 0.15s;
@@ -109,83 +134,126 @@
         input[type="checkbox"]:checked {
             background: var(--accent);
             border-color: var(--accent);
-            box-shadow: 0 2px 6px rgba(26,60,94,0.35);
+            box-shadow: 0 2px 8px rgba(79,70,229,0.4);
         }
-
         input[type="checkbox"]:focus-visible {
             outline: 2px solid var(--accent); outline-offset: 2px;
         }
 
         /* ── CHECK GRID ── */
-        .check-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; background: #fafaf8; padding: 12px; border-radius: 8px; border: 1.5px solid var(--border); margin-bottom: 14px; }
+        .check-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; background: #f8faff; padding: 12px; border-radius: 10px; border: 1.5px solid #e0e7ff; margin-bottom: 14px; }
         .check-grid label { font-size: 0.82rem; color: var(--ink); font-weight: 500; display: flex; align-items: center; gap: 9px; margin: 0; cursor: pointer; }
-        .check-single { grid-template-columns: 1fr; background: var(--green-lt); border-color: #a7d9c0; }
+        .check-single { grid-template-columns: 1fr; background: var(--green-lt); border-color: #6ee7b7; }
         .check-single label { color: var(--green); font-weight: 700; }
         .check-single input[type="checkbox"]:checked { background: var(--green); border-color: var(--green); }
 
         /* ── BOTONES ── */
-        button { border: none; border-radius: 9px; padding: 13px 16px; font-family: 'DM Sans', sans-serif; font-weight: 600; font-size: 0.88rem; cursor: pointer; transition: transform 0.1s, box-shadow 0.15s; width: 100%; margin-bottom: 6px; letter-spacing: 0.02em; }
-        button:active { transform: scale(0.98); }
-        .btn-primary { background: var(--ink); color: #fff; box-shadow: 0 2px 8px rgba(15,17,23,0.2); }
-        .btn-primary:hover { box-shadow: 0 4px 16px rgba(15,17,23,0.3); }
+        button { border: none; border-radius: 10px; padding: 13px 16px; font-family: 'DM Sans', sans-serif; font-weight: 600; font-size: 0.88rem; cursor: pointer; transition: transform 0.12s, box-shadow 0.15s, background 0.15s; width: 100%; margin-bottom: 6px; letter-spacing: 0.02em; }
+        button:active { transform: scale(0.97); }
+        .btn-primary {
+            background: linear-gradient(135deg, var(--accent) 0%, var(--accent-dk) 100%);
+            color: #fff;
+            box-shadow: 0 3px 12px rgba(79,70,229,0.35);
+        }
+        .btn-primary:hover { box-shadow: 0 6px 20px rgba(79,70,229,0.45); transform: translateY(-1px); }
         .btn-secondary { background: var(--card); color: var(--ink); border: 1.5px solid var(--border); }
+        .btn-secondary:hover { background: #f8faff; border-color: #c7d2fe; }
         .btn-ghost { background: transparent; color: var(--muted); border: 1.5px solid var(--border); font-size: 0.82rem; }
-        .btn-arrow-ready { background: var(--amber-lt) !important; color: var(--amber) !important; border-color: #f0d08a !important; transform: scale(1.18); transition: background 0.15s, color 0.15s, transform 0.15s; }
-        .btn-danger { background: var(--red-lt); color: var(--red); border: 1.5px solid #e8b4b4; }
-        .btn-success { background: var(--green-lt); color: var(--green); border: 1.5px solid #a7d9c0; }
-        .btn-blue { background: #e8f0f8; color: var(--accent); border: 1.5px solid #b8cfe0; }
-        .btn-gold { background: var(--amber-lt); color: var(--amber); border: 1.5px solid #e8c97a; }
+        .btn-arrow-ready { background: var(--amber-lt) !important; color: var(--amber-dk) !important; border-color: #fde68a !important; transform: scale(1.18); transition: background 0.15s, color 0.15s, transform 0.15s; }
+        .btn-danger { background: var(--red-lt); color: var(--red); border: 1.5px solid #fecaca; }
+        .btn-danger:hover { background: #fee2e2; }
+        .btn-success {
+            background: linear-gradient(135deg, var(--green) 0%, var(--green-dk) 100%);
+            color: #fff; border: none;
+            box-shadow: 0 3px 12px rgba(5,150,105,0.3);
+        }
+        .btn-success:hover { box-shadow: 0 6px 18px rgba(5,150,105,0.4); transform: translateY(-1px); }
+        .btn-blue { background: var(--accent-lt); color: var(--accent); border: 1.5px solid #c7d2fe; }
+        .btn-blue:hover { background: #e0e7ff; }
+        .btn-gold { background: var(--amber-lt); color: var(--amber-dk); border: 1.5px solid #fde68a; }
         .btn-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 0; }
         .btn-row button { margin: 0; }
-        .btn-icon { padding: 7px; font-size: 0.85rem; border-radius: 7px; min-width: 32px; width: auto; margin: 0; display: flex; align-items: center; justify-content: center; }
-        .btn-edit-icon { background: var(--amber-lt); color: var(--amber); border: 1px solid #f0d08a; }
-        .btn-del-icon  { background: var(--red-lt);   color: var(--red);   border: 1px solid #e8b4b4; }
+        .btn-icon { padding: 7px; font-size: 0.85rem; border-radius: 8px; min-width: 32px; width: auto; margin: 0; display: flex; align-items: center; justify-content: center; }
+        .btn-edit-icon { background: var(--amber-lt); color: var(--amber-dk); border: 1px solid #fde68a; }
+        .btn-del-icon  { background: var(--red-lt); color: var(--red); border: 1px solid #fecaca; }
 
         /* ── QUICK OPTION ── */
-        .quick-option { background: #eef4fb; border: 1.5px solid #c3d9ee; padding: 12px 14px; border-radius: 9px; margin-bottom: 14px; transition: background 0.15s, border-color 0.15s; }
-        .quick-option:has(input:checked) { background: #dbeeff; border-color: var(--accent); }
+        .quick-option { background: #f5f3ff; border: 1.5px solid #ddd6fe; padding: 12px 14px; border-radius: 10px; margin-bottom: 14px; transition: background 0.15s, border-color 0.15s; }
+        .quick-option:has(input:checked) { background: #ede9fe; border-color: var(--accent); }
         .quick-label { display: flex; align-items: center; gap: 9px; color: var(--accent); font-weight: 600; font-size: 0.88rem; cursor: pointer; }
         .quick-label input[type="checkbox"] { width: 20px; height: 20px; }
-        .quick-desc { font-size: 0.72rem; color: #6a92b8; margin: 5px 0 0 29px; }
+        .quick-desc { font-size: 0.72rem; color: #8b5cf6; margin: 5px 0 0 29px; }
 
         /* ── IVA BOX ── */
-        .iva-box { background: var(--green-lt); padding: 14px; border-radius: 9px; border: 1.5px solid #a7d9c0; margin-bottom: 14px; }
-        .iva-box > label { color: var(--green); font-weight: 700; margin-bottom: 8px; }
+        .iva-box { background: var(--teal-lt); padding: 14px; border-radius: 10px; border: 1.5px solid #99f6e4; margin-bottom: 14px; }
+        .iva-box > label { color: var(--teal); font-weight: 700; margin-bottom: 8px; }
         .iva-box select { margin-bottom: 10px; background: #fff; }
         .iva-btn-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-        .btn-iva { background: #fff; color: var(--green); border: 1.5px solid #a7d9c0; padding: 10px; font-size: 0.75rem; font-weight: 600; border-radius: 7px; width: 100%; margin: 0; cursor: pointer; font-family: 'DM Sans', sans-serif; transition: background 0.15s; }
-        .btn-iva:hover { background: var(--green-lt); }
+        .btn-iva { background: #fff; color: var(--teal); border: 1.5px solid #99f6e4; padding: 10px; font-size: 0.75rem; font-weight: 600; border-radius: 8px; width: 100%; margin: 0; cursor: pointer; font-family: 'DM Sans', sans-serif; transition: background 0.15s; }
+        .btn-iva:hover { background: var(--teal-lt); }
 
         /* ── TABLA ── */
-        .table-wrap { overflow-x: auto; border-radius: 9px; border: 1.5px solid var(--border); }
+        .table-wrap { overflow-x: auto; border-radius: 10px; border: 1.5px solid var(--border); }
         table { width: 100%; border-collapse: collapse; font-size: 0.78rem; }
-        thead tr { background: #fafaf8; }
+        thead tr { background: #f8faff; }
         th { padding: 11px 12px; border-bottom: 1.5px solid var(--border); text-align: left; font-size: 0.65rem; font-weight: 700; color: var(--muted); letter-spacing: 0.1em; text-transform: uppercase; white-space: nowrap; }
-        td { padding: 10px 12px; border-bottom: 1px solid #f2f0ec; vertical-align: middle; }
+        td { padding: 10px 12px; border-bottom: 1px solid var(--border-lt); vertical-align: middle; }
         tr:last-child td { border-bottom: none; }
         tbody tr { transition: background 0.1s; }
-        tbody tr:hover { background: #fafaf8; }
+        tbody tr:hover { background: #f8faff; }
         .action-btns { display: flex; gap: 6px; }
         .td-code { font-weight: 700; color: var(--accent); font-size: 0.8rem; font-variant-numeric: tabular-nums; }
         .empty-row td { text-align: center; color: var(--muted); padding: 20px; font-size: 0.82rem; }
+
+        /* ── HOVER RESALTADO — Hoja de Trabajo y tablas inline ── */
+        #rep-tabla-inline tbody tr:not(.enc-row):not(.col-head):not(.spacer-row):not(.tot-row) {
+            cursor: default;
+            transition: outline 0s, box-shadow 0.12s, filter 0.12s;
+        }
+        #rep-tabla-inline tbody tr:not(.enc-row):not(.col-head):not(.spacer-row):not(.tot-row):hover td {
+            filter: brightness(0.88) saturate(1.3);
+            box-shadow: inset 0 0 0 1000px rgba(79,70,229,0.09);
+            border-top: 1px solid rgba(79,70,229,0.2);
+            border-bottom: 1px solid rgba(79,70,229,0.2);
+        }
+        #rep-tabla-inline tbody tr:not(.enc-row):not(.col-head):not(.spacer-row):not(.tot-row):hover td:not([class*="hj-"]) {
+            background: rgba(79,70,229,0.06) !important;
+        }
+        #rep-tabla-inline table.balance-outer > tbody > tr:hover td,
+        #rep-tabla-inline table.balance-outer > tbody > tr:hover {
+            filter: none !important; box-shadow: none !important;
+            background: transparent !important;
+            border-top: none !important; border-bottom: none !important;
+        }
 
         /* ── TOTALES ── */
         .totals-ok  { color: var(--green); font-weight: 700; }
         .totals-err { color: var(--red);   font-weight: 700; }
 
         /* ── TAB BAR ── */
-        .tab-bar { position: fixed; bottom: 0; left: 0; right: 0; background: var(--ink); display: flex; justify-content: space-around; padding: 10px 0 14px; z-index: 200; box-shadow: 0 -1px 0 rgba(255,255,255,0.06); }
+        .tab-bar {
+            position: fixed; bottom: 0; left: 0; right: 0;
+            background: linear-gradient(180deg, #0f172a 0%, #1e1b4b 100%);
+            display: flex; justify-content: space-around;
+            padding: 10px 0 14px; z-index: 200;
+            box-shadow: 0 -1px 0 rgba(255,255,255,0.06), 0 -8px 24px rgba(79,70,229,0.2);
+        }
         .tab-item { display: flex; flex-direction: column; align-items: center; gap: 4px; font-size: 0.58rem; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: rgba(255,255,255,0.32); cursor: pointer; flex: 1; transition: color 0.15s; }
         .tab-item .tab-icon { font-size: 1.1rem; display: block; transition: transform 0.2s cubic-bezier(0.34,1.56,0.64,1); }
-        .tab-item.active { color: var(--accent-2); }
+        .tab-item.active { color: #f59e0b; }
         .tab-item.active .tab-icon { transform: translateY(-2px); }
 
         /* ── OVERLAYS ── */
-        #loading-overlay { position: fixed; inset: 0; background: var(--ink); z-index: 9999; display: flex; flex-direction: column; justify-content: center; align-items: center; color: #fff; }
+        #loading-overlay {
+            position: fixed; inset: 0;
+            background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%);
+            z-index: 9999; display: flex; flex-direction: column;
+            justify-content: center; align-items: center; color: #fff;
+        }
         #loading-overlay.hidden { display: none; }
         .loader-brand { font-family: 'DM Serif Display', serif; font-size: 2.2rem; margin-bottom: 4px; }
-        .loader-sub { font-size: 0.68rem; color: var(--accent-2); letter-spacing: 0.16em; text-transform: uppercase; margin-bottom: 40px; }
-        .spinner { width: 32px; height: 32px; border: 3px solid rgba(255,255,255,0.15); border-top-color: var(--accent-2); border-radius: 50%; animation: spin 0.8s linear infinite; }
+        .loader-sub { font-size: 0.68rem; color: #f59e0b; letter-spacing: 0.16em; text-transform: uppercase; margin-bottom: 40px; }
+        .spinner { width: 32px; height: 32px; border: 3px solid rgba(255,255,255,0.15); border-top-color: #f59e0b; border-radius: 50%; animation: spin 0.8s linear infinite; }
         @keyframes spin { to{transform:rotate(360deg)} }
 
         #success-overlay { display:none; }
@@ -193,25 +261,25 @@
         /* ── TOASTS ── */
         .toast {
             display: flex; align-items: center; gap: 10px;
-            padding: 12px 16px; border-radius: 12px;
+            padding: 12px 16px; border-radius: 14px;
             font-size: 0.84rem; font-weight: 600; font-family: 'DM Sans', sans-serif;
-            box-shadow: 0 8px 28px rgba(15,17,23,0.18);
+            box-shadow: 0 8px 32px rgba(15,23,42,0.22);
             pointer-events: auto;
             animation: toastIn 0.28s cubic-bezier(0.34,1.4,0.64,1) forwards;
             width: 100%; box-sizing: border-box;
         }
         .toast.out { animation: toastOut 0.22s ease forwards; }
-        .toast-ok   { background: #0f1117; color: #4ade80; border: 1px solid rgba(74,222,128,0.25); }
-        .toast-err  { background: #0f1117; color: #f87171; border: 1px solid rgba(248,113,113,0.25); }
-        .toast-warn { background: #0f1117; color: #fbbf24; border: 1px solid rgba(251,191,36,0.25); }
+        .toast-ok   { background: #0f172a; color: #34d399; border: 1px solid rgba(52,211,153,0.3); }
+        .toast-err  { background: #0f172a; color: #f87171; border: 1px solid rgba(248,113,113,0.3); }
+        .toast-warn { background: #0f172a; color: #fbbf24; border: 1px solid rgba(251,191,36,0.3); }
         .toast-icon { font-size: 1.15rem; flex-shrink: 0; }
         .toast-msg  { flex: 1; line-height: 1.35; }
         @keyframes toastIn  { from{opacity:0;transform:translateY(-10px) scale(0.95)} to{opacity:1;transform:translateY(0) scale(1)} }
         @keyframes toastOut { from{opacity:1;transform:translateY(0) scale(1)} to{opacity:0;transform:translateY(-8px) scale(0.95)} }
 
         /* ── ZONA PELIGRO ── */
-        .danger-card { border: 1.5px solid #e8b4b4; border-radius: var(--radius); padding: 16px; background: var(--red-lt); margin-bottom: 16px; }
-        .danger-card .card-title { border-color: #e8b4b4; color: var(--red); }
+        .danger-card { border: 1.5px solid #fecaca; border-radius: var(--radius); padding: 16px; background: var(--red-lt); margin-bottom: 16px; }
+        .danger-card .card-title { border-color: #fecaca; color: var(--red); }
 
         /* ── DOS COLUMNAS ── */
         .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
@@ -225,40 +293,34 @@
             transition: background 0.15s, color 0.15s, border-color 0.15s;
             width: auto; margin: 0; letter-spacing: 0.02em;
         }
-        .datos-pill.active { background: var(--ink); color: #fff; border-color: var(--ink); }
-        .datos-pill:hover:not(.active) { background: #f0f0ec; border-color: #c0beba; }
+        .datos-pill.active { background: var(--accent); color: #fff; border-color: var(--accent); box-shadow: 0 2px 8px rgba(79,70,229,0.3); }
+        .datos-pill:hover:not(.active) { background: var(--accent-lt); border-color: #c7d2fe; color: var(--accent); }
 
         /* ── CLASIFICACIÓN BADGES ── */
         .clasif-badge { display:inline-block; font-size:0.62rem; font-weight:700; padding:2px 7px; border-radius:10px; margin:1px; }
-        .clasif-pyg  { background:#e8f5ef; color:var(--green); border:1px solid #a7d9c0; }
-        .clasif-inv  { background:#fdf5e6; color:var(--amber); border:1px solid #f0d08a; }
-        .clasif-iva  { background:#e8f0f8; color:var(--accent); border:1px solid #b8cfe0; }
+        .clasif-pyg  { background:var(--green-lt); color:var(--green); border:1px solid #6ee7b7; }
+        .clasif-inv  { background:var(--amber-lt); color:var(--amber-dk); border:1px solid #fde68a; }
+        .clasif-iva  { background:var(--accent-lt); color:var(--accent); border:1px solid #c7d2fe; }
         .two-col .form-group { margin-bottom: 0; }
 
         /* ── REPORTE PILLS ── */
         .rep-pill {
             flex: 1; min-width: 80px; padding: 9px 8px; font-size: 0.78rem; font-weight: 700;
-            border-radius: 8px; border: 1.5px solid var(--border);
+            border-radius: 10px; border: 1.5px solid var(--border);
             background: var(--card); color: var(--muted);
             cursor: pointer; transition: all 0.15s; margin: 0; width: auto;
             letter-spacing: 0.02em; text-align: center;
         }
+        .rep-pill:hover:not(.active) { background: var(--accent-lt); border-color: #c7d2fe; color: var(--accent); }
         .rep-pill.active {
-            background: var(--accent); color: #fff;
-            border-color: var(--accent);
-            box-shadow: 0 2px 8px rgba(26,60,94,0.25);
+            background: linear-gradient(135deg, var(--accent) 0%, var(--accent-dk) 100%);
+            color: #fff; border-color: transparent;
+            box-shadow: 0 3px 10px rgba(79,70,229,0.35);
         }
 
         /* ── TABLA INLINE ── */
-        /* ── Tabla inline de reportes ── */
         #rep-tabla-inline { overflow-x: auto; }
-        #rep-tabla-inline table {
-            width: 100%;
-            table-layout: fixed;
-            border-collapse: collapse;
-        }
-        /* Anchos de columna por tipo de reporte — se sobrescriben por clase en cada tabla */
-        /* Diario / Mayor / Hoja: col-codigo, col-nombre, col-importe */
+        #rep-tabla-inline table { width: 100%; table-layout: fixed; border-collapse: collapse; }
         #rep-tabla-inline col.col-codigo  { width: 90px; }
         #rep-tabla-inline col.col-nombre  { width: 160px; }
         #rep-tabla-inline col.col-fecha   { width: 82px; }
@@ -268,25 +330,61 @@
         #rep-tabla-inline col.col-parcial { width: 80px; }
 
         #rep-tabla-inline th {
-            background: #1a3c5e; color: #fff;
-            padding: 8px 10px; font-size: 0.65rem; text-transform: uppercase;
+            background: linear-gradient(135deg, var(--accent) 0%, var(--accent-dk) 100%);
+            color: #fff; padding: 8px 10px; font-size: 0.65rem; text-transform: uppercase;
             letter-spacing: 0.08em; white-space: nowrap;
-            position: sticky; top: 0; z-index: 2;
-            text-align: left;
+            position: sticky; top: 0; z-index: 2; text-align: left;
         }
         #rep-tabla-inline th.num { text-align: right; }
         #rep-tabla-inline td {
-            padding: 7px 10px; border-bottom: 1px solid #f2f0ec;
-            font-size: 0.78rem;
-            overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+            padding: 7px 10px; border-bottom: 1px solid var(--border-lt);
+            font-size: 0.78rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
         }
-        #rep-tabla-inline tr.enc-row td  { background: #dce8f5; font-weight: 700; font-size: 0.75rem; color: #0f1117; padding: 7px 10px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        #rep-tabla-inline tr.col-head td { background: #f0f4f8; font-weight: 700; font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.05em; color: #4b5563; }
-        #rep-tabla-inline tr.tot-row  td { background: #f8f4ec; border-top: 2px solid #c8a96e; font-weight: 700; font-size: 0.78rem; }
-        #rep-tabla-inline tr.glosa-row td { font-style: italic; color: #6b7280; font-size: 0.72rem; border-bottom: 2px double #1a3c5e; white-space: normal; }
+        #rep-tabla-inline tr.enc-row td  { background: #e0e7ff; font-weight: 700; font-size: 0.75rem; color: #1e1b4b; padding: 7px 10px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        #rep-tabla-inline tr.col-head td { background: #f0f4ff; font-weight: 700; font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.05em; color: #4338ca; }
+        #rep-tabla-inline tr.tot-row  td { background: #fef9ec; border-top: 2px solid #f59e0b; font-weight: 700; font-size: 0.78rem; }
+        #rep-tabla-inline tr.glosa-row td { font-style: italic; color: var(--muted); font-size: 0.72rem; border-bottom: 2px double var(--accent); white-space: normal; }
         #rep-tabla-inline tr.spacer-row td { padding: 4px 0; border-bottom: none; }
         #rep-tabla-inline .num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
         #rep-tabla-inline .saldo { color: var(--accent); font-weight: 600; }
+
+        /* ── HOJA DE TRABAJO — colores por grupo de columnas ── */
+        #rep-tabla-inline th.hj-mov-d  { background: #3730a3 !important; }
+        #rep-tabla-inline th.hj-mov-h  { background: #4f46e5 !important; }
+        #rep-tabla-inline td.hj-mov-d  { background: #eef2ff; color: #1e1b4b; }
+        #rep-tabla-inline td.hj-mov-h  { background: #e0e7ff; color: #1e1b4b; }
+        #rep-tabla-inline th.hj-sno-d  { background: #065f46 !important; }
+        #rep-tabla-inline th.hj-sno-h  { background: #047857 !important; }
+        #rep-tabla-inline td.hj-sno-d  { background: #ecfdf5; color: #064e3b; }
+        #rep-tabla-inline td.hj-sno-h  { background: #d1fae5; color: #064e3b; }
+        #rep-tabla-inline th.hj-aj-d   { background: #92400e !important; }
+        #rep-tabla-inline th.hj-aj-h   { background: #b45309 !important; }
+        #rep-tabla-inline td.hj-aj-d   { background: #fffbeb; color: #78350f; }
+        #rep-tabla-inline td.hj-aj-h   { background: #fef3c7; color: #78350f; }
+        #rep-tabla-inline th.hj-saj-d  { background: #5b21b6 !important; }
+        #rep-tabla-inline th.hj-saj-h  { background: #7c3aed !important; }
+        #rep-tabla-inline td.hj-saj-d  { background: #f5f3ff; color: #3b0764; }
+        #rep-tabla-inline td.hj-saj-h  { background: #ede9fe; color: #3b0764; }
+        #rep-tabla-inline th.hj-pyg-d  { background: #991b1b !important; }
+        #rep-tabla-inline th.hj-pyg-h  { background: #b91c1c !important; }
+        #rep-tabla-inline td.hj-pyg-d  { background: #fef2f2; color: #7f1d1d; }
+        #rep-tabla-inline td.hj-pyg-h  { background: #fee2e2; color: #7f1d1d; }
+        #rep-tabla-inline th.hj-bal-a  { background: #0f172a !important; }
+        #rep-tabla-inline th.hj-bal-p  { background: #1e293b !important; }
+        #rep-tabla-inline td.hj-bal-a  { background: #f1f5f9; color: #0f172a; font-weight: 600; }
+        #rep-tabla-inline td.hj-bal-p  { background: #e2e8f0; color: #0f172a; font-weight: 600; }
+        #rep-tabla-inline tr.tot-row td.hj-mov-d  { background: #c7d2fe !important; }
+        #rep-tabla-inline tr.tot-row td.hj-mov-h  { background: #a5b4fc !important; }
+        #rep-tabla-inline tr.tot-row td.hj-sno-d  { background: #a7f3d0 !important; }
+        #rep-tabla-inline tr.tot-row td.hj-sno-h  { background: #6ee7b7 !important; }
+        #rep-tabla-inline tr.tot-row td.hj-aj-d   { background: #fde68a !important; }
+        #rep-tabla-inline tr.tot-row td.hj-aj-h   { background: #fcd34d !important; }
+        #rep-tabla-inline tr.tot-row td.hj-saj-d  { background: #ddd6fe !important; }
+        #rep-tabla-inline tr.tot-row td.hj-saj-h  { background: #c4b5fd !important; }
+        #rep-tabla-inline tr.tot-row td.hj-pyg-d  { background: #fecaca !important; }
+        #rep-tabla-inline tr.tot-row td.hj-pyg-h  { background: #fca5a5 !important; }
+        #rep-tabla-inline tr.tot-row td.hj-bal-a  { background: #cbd5e1 !important; }
+        #rep-tabla-inline tr.tot-row td.hj-bal-p  { background: #94a3b8 !important; }
 
         /* ── SEARCHABLE SELECT ── */
         .ss-wrap { position: relative; width: 100%; display: flex; align-items: center; gap: 5px; }
@@ -1014,12 +1112,24 @@
                         <option value="ANALITICO">Analítico</option>
                     </select>
                     <div style="margin-top:10px;">
+                        <label style="display:flex;align-items:center;gap:8px;font-size:0.78rem;font-weight:600;color:var(--ink);cursor:pointer;">
+                            <input type="checkbox" id="er_mostrar_subs" onchange="vistaReporte(); repSaveConfig()" style="width:16px;height:16px;min-width:16px;">
+                            Mostrar subcuentas
+                        </label>
+                    </div>
+                    <div style="margin-top:10px;">
                         <div style="font-size:0.64rem;font-weight:700;color:var(--muted);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:6px;">Configurar Rubros</div>
                         <div id="er-config-rubros" style="background:#fafaf8;border:1.5px solid var(--border);border-radius:8px;padding:10px;max-height:180px;overflow-y:auto;font-size:0.78rem;"></div>
                         <p style="font-size:0.68rem;color:var(--muted);margin:4px 0 0;">Los rubros con ef="B" aparecen aquí. Arrastra para ordenar.</p>
                     </div>
                 </div>
                 <div id="opt-balance" class="rep-opt" style="display:none;">
+                    <div style="margin-bottom:10px;">
+                        <label style="display:flex;align-items:center;gap:8px;font-size:0.78rem;font-weight:600;color:var(--ink);cursor:pointer;">
+                            <input type="checkbox" id="bal_mostrar_subs" onchange="vistaReporte(); repSaveConfig()" style="width:16px;height:16px;min-width:16px;">
+                            Mostrar subcuentas
+                        </label>
+                    </div>
                     <div style="font-size:0.64rem;font-weight:700;color:var(--muted);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:6px;">Clasificar Rubros (ef="A")</div>
                     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
                         <div>
@@ -1039,7 +1149,7 @@
         <!-- TABLA PRINCIPAL (máximo espacio) -->
         <div style="padding:12px 14px 80px;">
             <div class="card" style="padding:0;overflow:hidden;margin-bottom:0;">
-                <div id="rep-header-inline" style="background:var(--accent);color:#fff;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;">
+                <div id="rep-header-inline" style="background:linear-gradient(135deg,#4f46e5 0%,#3730a3 100%);color:#fff;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;">
                     <div>
                         <div style="font-size:0.65rem;opacity:0.8;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;" id="rep-empresa-inline"></div>
                         <div style="font-family:'DM Serif Display',serif;font-size:1rem;margin-top:1px;" id="rep-titulo-inline">Libro Diario</div>
@@ -1075,6 +1185,8 @@
                 mayor_nivel:  document.getElementById('mayor_nivel')?.value  || 'subcuenta',
                 hoja_nivel:   document.getElementById('hoja_nivel')?.value   || 'subcuenta',
                 er_metodo:    document.getElementById('er_metodo')?.value    || 'PERPETUOS',
+                er_mostrar_subs:  !!(document.getElementById('er_mostrar_subs')?.checked),
+                bal_mostrar_subs: !!(document.getElementById('bal_mostrar_subs')?.checked),
                 kardex_sub:   document.getElementById('kardex_sub_sel')?.value || '',
                 panelOpen:    document.getElementById('rep-config-panel')?.style.maxHeight !== '0px'
             };
@@ -1095,6 +1207,12 @@
             if (cfg.hoja_nivel)   { var s = document.getElementById('hoja_nivel');   if(s) s.value = cfg.hoja_nivel; }
             if (cfg.er_metodo)    { var s = document.getElementById('er_metodo');    if(s) s.value = cfg.er_metodo; }
             if (cfg.kardex_sub)   { var s = document.getElementById('kardex_sub_sel'); if(s) s.value = cfg.kardex_sub; }
+
+            // Restaurar checkboxes de subcuentas
+            const erSubs = document.getElementById('er_mostrar_subs');
+            if (erSubs && cfg.er_mostrar_subs !== undefined) erSubs.checked = !!cfg.er_mostrar_subs;
+            const balSubs = document.getElementById('bal_mostrar_subs');
+            if (balSubs && cfg.bal_mostrar_subs !== undefined) balSubs.checked = !!cfg.bal_mostrar_subs;
 
             // Restaurar tipo de reporte
             if (cfg.tipo) {
@@ -2707,6 +2825,15 @@
         };
 
         window.eliminarMov=function(i){tempMovimientos.splice(i,1);renderTempMovimientos();checkHintPyG();};
+        window.voltearMov=function(i){
+            const m=tempMovimientos[i];
+            if(!m)return;
+            const tmp=m.debe;
+            m.debe=m.haber;
+            m.haber=tmp;
+            renderTempMovimientos();
+            checkHintPyG();
+        };
         window.moverMov=function(i,dir){
             const j=i+dir;
             if(j<0||j>=tempMovimientos.length)return;
@@ -2754,7 +2881,7 @@
                 }
                 const upDisabled=i===0?'disabled':'';
                 const downDisabled=i===n-1?'disabled':'';
-                return`<tr><td class="td-code">${m.subcuenta}</td><td style="font-size:0.75rem;color:var(--muted);">${m.nombre||''} ${badge}</td><td>${m.debe>0?m.debe.toFixed(2):''}</td><td>${m.haber>0?m.haber.toFixed(2):''}</td><td><div class="action-btns" style="gap:2px;"><button class="btn-icon btn-secondary" style="padding:3px 5px;font-size:0.7rem;min-width:22px;border-radius:5px;" onclick="moverMov(${i},-1)" ${upDisabled}>▲</button><button class="btn-icon btn-secondary" style="padding:3px 5px;font-size:0.7rem;min-width:22px;border-radius:5px;" onclick="moverMov(${i},1)" ${downDisabled}>▼</button></div></td><td><div class="action-btns"><button class="btn-icon btn-del-icon" onclick="eliminarMov(${i})">✕</button></div></td></tr>`;}).join('');}
+                return`<tr><td class="td-code">${m.subcuenta}</td><td style="font-size:0.75rem;color:var(--muted);">${m.nombre||''} ${badge}</td><td>${m.debe>0?m.debe.toFixed(2):''}</td><td>${m.haber>0?m.haber.toFixed(2):''}</td><td><div class="action-btns" style="gap:2px;"><button class="btn-icon btn-secondary" style="padding:3px 5px;font-size:0.7rem;min-width:22px;border-radius:5px;" onclick="moverMov(${i},-1)" ${upDisabled}>▲</button><button class="btn-icon btn-secondary" style="padding:3px 5px;font-size:0.7rem;min-width:22px;border-radius:5px;" onclick="moverMov(${i},1)" ${downDisabled}>▼</button></div></td><td><div class="action-btns"><button class="btn-icon" style="background:#e8f0fb;color:#1a3c5e;border:1px solid #b8cfe0;" title="Pasar de Debe a Haber o viceversa" onclick="voltearMov(${i})">⇄</button><button class="btn-icon btn-del-icon" onclick="eliminarMov(${i})">✕</button></div></td></tr>`;}).join('');}
             const lc=document.getElementById('label-cuadre');
             lc.textContent=`$${sd.toFixed(2)} / $${sh.toFixed(2)}`;
             lc.className=(sd>0&&Math.abs(sd-sh)<0.001)?'totals-ok':'totals-err';
@@ -3873,33 +4000,46 @@
             const esConsolidado = nivel === 'cuenta';
             claves.forEach(clave=>{
                 const s=saldos[clave];
-                const movD=s[0],movH=s[1],netMov=movD-movH;
+                const movD=s[0],movH=s[1],netMov=Math.round((movD-movH)*100)/100;
                 const sNormD=netMov>0?netMov:0,sNormH=netMov<0?Math.abs(netMov):0;
-                const ajD=s[2],ajH=s[3],netAj=netMov+(ajD-ajH);
+                const ajD=s[2],ajH=s[3],netAj=Math.round((netMov+(ajD-ajH))*100)/100;
                 const sAjD=netAj>0?netAj:0,sAjH=netAj<0?Math.abs(netAj):0;
-                const pygD=s[4],pygH=s[5],netFin=netAj+(pygD-pygH);
+                const pygD=s[4],pygH=s[5],netFin=Math.round((netAj+(pygD-pygH))*100)/100;
                 const activo=netFin>0?netFin:0,pasivo=netFin<0?Math.abs(netFin):0;
                 const vals=[movD,movH,sNormD,sNormH,ajD,ajH,sAjD,sAjH,pygD,pygH,activo,pasivo];
                 vals.forEach((v,i)=>{totals[i]+=v;});
                 const nombre=esConsolidado?getNomCuenta(clave):getNomSub(clave);
+                // Clases de color por grupo: mov-d, mov-h, sno-d, sno-h, aj-d, aj-h, saj-d, saj-h, pyg-d, pyg-h, bal-a, bal-p
+                const hjCls=['hj-mov-d','hj-mov-h','hj-sno-d','hj-sno-h','hj-aj-d','hj-aj-h','hj-saj-d','hj-saj-h','hj-pyg-d','hj-pyg-h','hj-bal-a','hj-bal-p'];
                 if (esConsolidado) {
-                    rows+=`<tr><td>${clave}</td><td>${nombre}</td>${vals.map(v=>`<td class="num">${fmtMon(v)}</td>`).join('')}</tr>`;
+                    rows+=`<tr><td>${clave}</td><td>${nombre}</td>${vals.map((v,i)=>`<td class="num ${hjCls[i]}">${fmtMon(v)}</td>`).join('')}</tr>`;
                 } else {
-                    rows+=`<tr><td>${getPadre(clave)}</td><td>${clave}</td><td>${nombre}</td>${vals.map(v=>`<td class="num">${fmtMon(v)}</td>`).join('')}</tr>`;
+                    rows+=`<tr><td>${getPadre(clave)}</td><td>${clave}</td><td>${nombre}</td>${vals.map((v,i)=>`<td class="num ${hjCls[i]}">${fmtMon(v)}</td>`).join('')}</tr>`;
                 }
             });
+            // Encabezados agrupados con colspan + fila de subencabezados Debe/Haber
+            const grupoCols = [
+                {label:'MOVIMIENTOS',        cls1:'hj-mov-d', cls2:'hj-mov-h'},
+                {label:'SALDO NORMAL',        cls1:'hj-sno-d', cls2:'hj-sno-h'},
+                {label:'AJUSTES',             cls1:'hj-aj-d',  cls2:'hj-aj-h'},
+                {label:'SALDO AJUSTADO',      cls1:'hj-saj-d', cls2:'hj-saj-h'},
+                {label:'P y G',               cls1:'hj-pyg-d', cls2:'hj-pyg-h'},
+                {label:'BALANCE',             cls1:'hj-bal-a', cls2:'hj-bal-p'},
+            ];
+            const subLabels = [['Debe','Haber'],['Deudor','Acreedor'],['Debe','Haber'],['Deudor','Acreedor'],['Debe','Haber'],['Activo','Pasivo']];
+            const hjCls=['hj-mov-d','hj-mov-h','hj-sno-d','hj-sno-h','hj-aj-d','hj-aj-h','hj-saj-d','hj-saj-h','hj-pyg-d','hj-pyg-h','hj-bal-a','hj-bal-p'];
             if (esConsolidado) {
-                rows+=`<tr class="tot-row"><td colspan="2" style="text-align:right;font-weight:700;">TOTALES</td>${totals.map(v=>`<td class="num">${fmtMonZ(v)}</td>`).join('')}</tr>`;
-                const ths=['Cuenta','Nombre','Mov.D','Mov.H','Sdo.D','Sdo.H','Aj.D','Aj.H','SAj.D','SAj.H','PyG.D','PyG.H','Activo','Pasivo'];
+                rows+=`<tr class="tot-row"><td colspan="2" style="text-align:right;font-weight:700;">TOTALES</td>${totals.map((v,i)=>`<td class="num ${hjCls[i]}">${fmtMonZ(v)}</td>`).join('')}</tr>`;
                 const cgHoja=`<colgroup><col class="col-codigo"><col class="col-nombre">${Array(12).fill('<col class="col-num">').join('')}</colgroup>`;
-                const thsH=ths.map((h,i)=>i>=2?`<th class="num">${h}</th>`:`<th>${h}</th>`).join('');
-                return {html:`<table>${cgHoja}<thead><tr>${thsH}</tr></thead><tbody>${rows}</tbody></table>`,resumen:`${claves.length} cuentas — Activo: ${fmtMonZ(totals[10])} | Pasivo: ${fmtMonZ(totals[11])}`};
+                const thGrupos=`<th colspan="2" style="background:#374151;"></th>`+grupoCols.map(g=>`<th colspan="2" class="num" style="text-align:center;">${g.label}</th>`).join('');
+                const thSubs=`<th style="background:#4b5563;font-size:0.6rem;">Cuenta</th><th style="background:#4b5563;font-size:0.6rem;">Nombre</th>`+grupoCols.map((g,gi)=>`<th class="num ${g.cls1}" style="font-size:0.6rem;">${subLabels[gi][0]}</th><th class="num ${g.cls2}" style="font-size:0.6rem;">${subLabels[gi][1]}</th>`).join('');
+                return {html:`<table>${cgHoja}<thead><tr>${thGrupos}</tr><tr>${thSubs}</tr></thead><tbody>${rows}</tbody></table>`,resumen:`${claves.length} cuentas — Activo: ${fmtMonZ(totals[10])} | Pasivo: ${fmtMonZ(totals[11])}`};
             } else {
-                rows+=`<tr class="tot-row"><td colspan="3" style="text-align:right;font-weight:700;">TOTALES</td>${totals.map(v=>`<td class="num">${fmtMonZ(v)}</td>`).join('')}</tr>`;
-                const ths=['Cta.Mayor','Subcuenta','Nombre','Mov.D','Mov.H','Sdo.D','Sdo.H','Aj.D','Aj.H','SAj.D','SAj.H','PyG.D','PyG.H','Activo','Pasivo'];
+                rows+=`<tr class="tot-row"><td colspan="3" style="text-align:right;font-weight:700;">TOTALES</td>${totals.map((v,i)=>`<td class="num ${hjCls[i]}">${fmtMonZ(v)}</td>`).join('')}</tr>`;
                 const cgHoja=`<colgroup><col class="col-codigo"><col class="col-codigo"><col class="col-nombre">${Array(12).fill('<col class="col-num">').join('')}</colgroup>`;
-                const thsH=ths.map((h,i)=>i>=3?`<th class="num">${h}</th>`:`<th>${h}</th>`).join('');
-                return {html:`<table>${cgHoja}<thead><tr>${thsH}</tr></thead><tbody>${rows}</tbody></table>`,resumen:`${claves.length} subcuentas — Activo: ${fmtMonZ(totals[10])} | Pasivo: ${fmtMonZ(totals[11])}`};
+                const thGrupos=`<th colspan="3" style="background:#374151;"></th>`+grupoCols.map(g=>`<th colspan="2" class="num" style="text-align:center;">${g.label}</th>`).join('');
+                const thSubs=`<th style="background:#4b5563;font-size:0.6rem;">Cta.Mayor</th><th style="background:#4b5563;font-size:0.6rem;">Subcuenta</th><th style="background:#4b5563;font-size:0.6rem;">Nombre</th>`+grupoCols.map((g,gi)=>`<th class="num ${g.cls1}" style="font-size:0.6rem;">${subLabels[gi][0]}</th><th class="num ${g.cls2}" style="font-size:0.6rem;">${subLabels[gi][1]}</th>`).join('');
+                return {html:`<table>${cgHoja}<thead><tr>${thGrupos}</tr><tr>${thSubs}</tr></thead><tbody>${rows}</tbody></table>`,resumen:`${claves.length} subcuentas — Activo: ${fmtMonZ(totals[10])} | Pasivo: ${fmtMonZ(totals[11])}`};
             }
         }
 
@@ -4327,7 +4467,7 @@
                 const movD = s[0], movH = s[1];
 
                 // Saldo normal = diferencia neta del movimiento
-                const netMov = movD - movH;
+                const netMov = Math.round((movD - movH) * 100) / 100;
                 const sNormD = netMov > 0 ? netMov : 0;
                 const sNormH = netMov < 0 ? Math.abs(netMov) : 0;
 
@@ -4335,7 +4475,7 @@
                 const ajD = s[2], ajH = s[3];
 
                 // Saldo ajustado = saldo normal ± ajuste
-                const netAj = netMov + (ajD - ajH);
+                const netAj = Math.round((netMov + (ajD - ajH)) * 100) / 100;
                 const sAjD = netAj > 0 ? netAj : 0;
                 const sAjH = netAj < 0 ? Math.abs(netAj) : 0;
 
@@ -4343,7 +4483,7 @@
                 const pygD = s[4], pygH = s[5];
 
                 // Balance final
-                const netFin = netAj + (pygD - pygH);
+                const netFin = Math.round((netAj + (pygD - pygH)) * 100) / 100;
                 const activo = netFin > 0 ? netFin : 0;
                 const pasivo = netFin < 0 ? Math.abs(netFin) : 0;
 
@@ -4357,49 +4497,84 @@
                     rows += `<tr>
                         <td>${clave}</td>
                         <td>${nombre}</td>
-                        ${vals.map(v => `<td class="num">${fmtMon(v)}</td>`).join('')}
+                        <td class="num" style="background:#eef4fb;color:#0d2a44;">${fmtMon(vals[0])}</td>
+                        <td class="num" style="background:#dce8f5;color:#0d2a44;">${fmtMon(vals[1])}</td>
+                        <td class="num" style="background:#e8f5ef;color:#0d3328;">${fmtMon(vals[2])}</td>
+                        <td class="num" style="background:#d4eee3;color:#0d3328;">${fmtMon(vals[3])}</td>
+                        <td class="num" style="background:#fdf5e6;color:#5c3507;">${fmtMon(vals[4])}</td>
+                        <td class="num" style="background:#faecd3;color:#5c3507;">${fmtMon(vals[5])}</td>
+                        <td class="num" style="background:#f3eeff;color:#2e1a50;">${fmtMon(vals[6])}</td>
+                        <td class="num" style="background:#ead5ff;color:#2e1a50;">${fmtMon(vals[7])}</td>
+                        <td class="num" style="background:#fdf0f0;color:#4a0f0f;">${fmtMon(vals[8])}</td>
+                        <td class="num" style="background:#f9dfdf;color:#4a0f0f;">${fmtMon(vals[9])}</td>
+                        <td class="num" style="background:#f0f0ed;color:#1a1f2e;font-weight:600;">${fmtMon(vals[10])}</td>
+                        <td class="num" style="background:#e4e4df;color:#1a1f2e;font-weight:600;">${fmtMon(vals[11])}</td>
                     </tr>`;
                 } else {
                     rows += `<tr>
                         <td>${getPadre(clave)}</td>
                         <td>${clave}</td>
                         <td>${nombre}</td>
-                        ${vals.map(v => `<td class="num">${fmtMon(v)}</td>`).join('')}
+                        <td class="num" style="background:#eef4fb;color:#0d2a44;">${fmtMon(vals[0])}</td>
+                        <td class="num" style="background:#dce8f5;color:#0d2a44;">${fmtMon(vals[1])}</td>
+                        <td class="num" style="background:#e8f5ef;color:#0d3328;">${fmtMon(vals[2])}</td>
+                        <td class="num" style="background:#d4eee3;color:#0d3328;">${fmtMon(vals[3])}</td>
+                        <td class="num" style="background:#fdf5e6;color:#5c3507;">${fmtMon(vals[4])}</td>
+                        <td class="num" style="background:#faecd3;color:#5c3507;">${fmtMon(vals[5])}</td>
+                        <td class="num" style="background:#f3eeff;color:#2e1a50;">${fmtMon(vals[6])}</td>
+                        <td class="num" style="background:#ead5ff;color:#2e1a50;">${fmtMon(vals[7])}</td>
+                        <td class="num" style="background:#fdf0f0;color:#4a0f0f;">${fmtMon(vals[8])}</td>
+                        <td class="num" style="background:#f9dfdf;color:#4a0f0f;">${fmtMon(vals[9])}</td>
+                        <td class="num" style="background:#f0f0ed;color:#1a1f2e;font-weight:600;">${fmtMon(vals[10])}</td>
+                        <td class="num" style="background:#e4e4df;color:#1a1f2e;font-weight:600;">${fmtMon(vals[11])}</td>
                     </tr>`;
                 }
             });
 
             const esConsolidado = nivel === 'cuenta';
+            // Helpers de color para la fila de totales
+            const totCls = [
+                'background:#d4e4f5;color:#0d2a44;', 'background:#c4d8f0;color:#0d2a44;',
+                'background:#c8e8da;color:#0d3328;', 'background:#b8dece;color:#0d3328;',
+                'background:#f0dfb8;color:#5c3507;', 'background:#e8d4a4;color:#5c3507;',
+                'background:#dcc8f8;color:#2e1a50;', 'background:#d0b8f4;color:#2e1a50;',
+                'background:#f4c8c8;color:#4a0f0f;', 'background:#ecb8b8;color:#4a0f0f;',
+                'background:#d8d8d4;color:#1a1f2e;font-weight:700;', 'background:#cccccc;color:#1a1f2e;font-weight:700;'
+            ];
+            // Fila de encabezados agrupados (colspan=2 por grupo)
+            const grupoCols = [
+                {label:'MOVIMIENTOS',   th1:'background:#1a3c5e', th2:'background:#2a5a8c'},
+                {label:'SALDO NORMAL',  th1:'background:#1a5c4a', th2:'background:#257a62'},
+                {label:'AJUSTES',       th1:'background:#7a4a0a', th2:'background:#9e6512'},
+                {label:'SALDO AJUST.',  th1:'background:#4a2a7a', th2:'background:#6a3d9e'},
+                {label:'P y G',         th1:'background:#7a1a1a', th2:'background:#a02828'},
+                {label:'BALANCE',       th1:'background:#2d3748', th2:'background:#4a5568'},
+            ];
+            const subLabels = [['Debe','Haber'],['Deudor','Acreedor'],['Debe','Haber'],['Deudor','Acreedor'],['Debe','Haber'],['Activo','Pasivo']];
             if (esConsolidado) {
                 rows += `<tr class="tot-row">
                     <td colspan="2" style="text-align:right;font-weight:700;">TOTALES</td>
-                    ${totals.map(v => `<td class="num">${fmtMonZ(v)}</td>`).join('')}
+                    ${totals.map((v,i) => `<td class="num" style="${totCls[i]}">${fmtMonZ(v)}</td>`).join('')}
                 </tr>`;
-                const headers = ['Cuenta','Nombre',
-                    'Mov. Deudor','Mov. Acreedor',
-                    'Saldo Deudor','Saldo Acreedor',
-                    'Aj. Deudor','Aj. Acreedor',
-                    'Sdo. Aj. Deudor','Sdo. Aj. Acreedor',
-                    'P y G Deudor','P y G Acreedor',
-                    'Activo','Pasivo'];
+                const thGrupos = `<th colspan="2" style="background:#374151;"></th>` +
+                    grupoCols.map(g=>`<th colspan="2" style="text-align:center;${g.th1};font-size:9px;letter-spacing:0.06em;">${g.label}</th>`).join('');
+                const thSubs = `<th style="background:#4b5563;">Cuenta</th><th style="background:#4b5563;">Nombre</th>` +
+                    grupoCols.map((g,gi)=>`<th class="num" style="${g.th1};">${subLabels[gi][0]}</th><th class="num" style="${g.th2};">${subLabels[gi][1]}</th>`).join('');
                 const titulo = 'Hoja de Trabajo — Por Cuenta';
                 return wrapTable(titulo, fechas,
-                    `<table><thead><tr>${headers.map(h=>`<th>${h}</th>`).join('')}</tr></thead><tbody>${rows}</tbody></table>`);
+                    `<table><thead><tr>${thGrupos}</tr><tr>${thSubs}</tr></thead><tbody>${rows}</tbody></table>`);
             } else {
                 rows += `<tr class="tot-row">
                     <td colspan="3" style="text-align:right;font-weight:700;">TOTALES</td>
-                    ${totals.map(v => `<td class="num">${fmtMonZ(v)}</td>`).join('')}
+                    ${totals.map((v,i) => `<td class="num" style="${totCls[i]}">${fmtMonZ(v)}</td>`).join('')}
                 </tr>`;
-                const headers = ['Cta. Mayor','Subcuenta','Nombre',
-                    'Mov. Deudor','Mov. Acreedor',
-                    'Saldo Deudor','Saldo Acreedor',
-                    'Aj. Deudor','Aj. Acreedor',
-                    'Sdo. Aj. Deudor','Sdo. Aj. Acreedor',
-                    'P y G Deudor','P y G Acreedor',
-                    'Activo','Pasivo'];
+                const thGrupos = `<th colspan="3" style="background:#374151;"></th>` +
+                    grupoCols.map(g=>`<th colspan="2" style="text-align:center;${g.th1};font-size:9px;letter-spacing:0.06em;">${g.label}</th>`).join('');
+                const thSubs = `<th style="background:#4b5563;">Cta. Mayor</th><th style="background:#4b5563;">Subcuenta</th><th style="background:#4b5563;">Nombre</th>` +
+                    grupoCols.map((g,gi)=>`<th class="num" style="${g.th1};">${subLabels[gi][0]}</th><th class="num" style="${g.th2};">${subLabels[gi][1]}</th>`).join('');
                 const titulo = 'Hoja de Trabajo — Por Subcuenta';
                 return wrapTable(titulo, fechas,
-                    `<table><thead><tr>${headers.map(h=>`<th>${h}</th>`).join('')}</tr></thead><tbody>${rows}</tbody></table>`);
+                    `<table><thead><tr>${thGrupos}</tr><tr>${thSubs}</tr></thead><tbody>${rows}</tbody></table>`);
             }
         }
 
@@ -4461,6 +4636,9 @@
                 tr.glosa-row td { font-style: italic; color: #6b7280; font-size: 9px; border-bottom: 2px double #1a3c5e; white-space: normal; }
                 tr.spacer-row td { padding: 5px 0; border-bottom: none; }
                 tr.pyg-row td { background: #f0fdf4 !important; }
+                /* Hoja de Trabajo — encabezado de grupo */
+                thead tr:first-child th { font-size: 8px; letter-spacing: 0.06em; border-bottom: 1px solid rgba(255,255,255,0.2); }
+                thead tr:last-child  th { font-size: 7px; border-top: none; }
                 @media print {
                     body { padding: 8px 12px; font-size: 9px; }
                     .no-print { display: none !important; }
@@ -4471,7 +4649,7 @@
                 <div class="rpt-empresa">${(db.config && db.config.nombreEmpresa) ? db.config.nombreEmpresa : '&nbsp;'}</div>
                 <div class="rpt-title">${titulo}${periodo ? ' — ' + periodo : ''}</div>
             </div>
-            <button class="no-print" onclick="window.print()" style="margin-bottom:12px;padding:7px 16px;background:#1a3c5e;color:#fff;border:none;border-radius:6px;cursor:pointer;font-weight:600;font-size:12px;">🖨 Imprimir / Guardar PDF</button>
+            <button class="no-print" onclick="window.print()" style="margin-bottom:12px;padding:7px 16px;background:linear-gradient(135deg,#4f46e5,#3730a3);color:#fff;border:none;border-radius:6px;cursor:pointer;font-weight:600;font-size:12px;">🖨 Imprimir / Guardar PDF</button>
             ${tableHtml}
             </body></html>`;
         }
@@ -4487,7 +4665,7 @@
                 td { overflow: visible !important; text-overflow: clip !important; white-space: normal !important; }
             `;
             const topBar = `<div class="no-print" style="
-                position:sticky;top:0;z-index:999;background:#1a3c5e;color:#fff;
+                position:sticky;top:0;z-index:999;background:linear-gradient(135deg,#4f46e5 0%,#3730a3 100%);color:#fff;
                 display:flex;align-items:center;justify-content:space-between;
                 padding:10px 20px;font-family:DM Sans,Arial,sans-serif;
                 box-shadow:0 2px 8px rgba(0,0,0,0.25);">
@@ -4524,27 +4702,451 @@
             if (typeof XLSX === 'undefined'){showError("No se pudo cargar la librería Excel. Usa PDF.");return;}
             const parser = new DOMParser();
             const doc = parser.parseFromString(html, 'text/html');
-            const table = doc.querySelector('table');
-            if (!table) return;
+
+            // ── Determinar tipo de reporte por nombre ──
+            const tipoRep = filename.replace('.xlsx','').split('_')[0];
+
+            // ── Recopilar todas las tablas (Balance tiene 2 tablas side-by-side) ──
+            const tables = doc.querySelectorAll('table');
+            if (!tables.length) return;
 
             const wb = XLSX.utils.book_new();
-            const ws = XLSX.utils.table_to_sheet(table, { raw: false });
 
-            // Anchos
-            const firstRow = table.querySelector('tr');
-            if (firstRow) {
-                ws['!cols'] = Array.from(firstRow.cells).map((_, i) =>
-                    ({ wch: i === 2 ? 38 : i <= 1 ? 13 : 14 }));
+            // ── Paleta de colores ──
+            const COLOR = {
+                headerBg:  '1A3C5E', headerFg: 'FFFFFF',
+                header2Bg: 'C8A96E', header2Fg: 'FFFFFF',
+                encRowBg:  'DCE8F5', encRowFg: '0F1117',
+                colHeadBg: 'F0F4F8', colHeadFg: '4B5563',
+                totRowBg:  'F8F4EC', totRowFg: '1A3C5E',
+                utilBg:    'C6EFCE', utilFg:   '006100',
+                perdBg:    'FFC7CE', perdFg:   '9C0006',
+                subtotBg:  'F5F5F2', subtotFg: '555555',
+                subRowBg:  'FAFAFA', subRowFg: '333333',
+                stripe:    'F7F6F2',
+            };
+
+            // Helpers de estilo
+            const cellStyle = (opts = {}) => ({
+                font: { name: 'Calibri', sz: opts.sz || 10, bold: !!opts.bold, color: { rgb: opts.fg || '000000' }, italic: !!opts.italic },
+                fill: opts.bg ? { fgColor: { rgb: opts.bg }, patternType: 'solid' } : undefined,
+                alignment: { horizontal: opts.align || 'left', vertical: 'center', wrapText: !!opts.wrap },
+                border: {
+                    bottom: { style: 'thin', color: { rgb: 'D0CCC6' } },
+                    right:  { style: 'thin', color: { rgb: 'E8E6E0' } },
+                },
+                numFmt: opts.numFmt || undefined,
+            });
+
+            const numFmt = '#,##0.00';
+
+            // ── Procesar una tabla HTML → worksheet data ──
+            function tableToStyledWS(table) {
+                const rows = Array.from(table.querySelectorAll('tr'));
+                const data = [];
+                const styles = [];
+                const merges = [];
+
+                rows.forEach((tr, ri) => {
+                    const rowData = [];
+                    const rowStyles = [];
+                    const cls = tr.className || '';
+                    const isEncRow  = cls.includes('enc-row');
+                    const isColHead = cls.includes('col-head');
+                    const isTotRow  = cls.includes('tot-row');
+                    const isSpacerRow = cls.includes('spacer-row');
+                    const isSubtotRow = (tr.getAttribute('style')||'').includes('F5F5F2') || (tr.getAttribute('style')||'').includes('f5f5f2');
+                    const isHeader  = tr.closest('thead') !== null;
+
+                    const cells = Array.from(tr.querySelectorAll('td, th'));
+                    let colIdx = 0;
+
+                    cells.forEach((cell, ci) => {
+                        const colspan = parseInt(cell.getAttribute('colspan') || '1');
+                        const text = cell.textContent.trim();
+                        const isNum = cell.classList.contains('num') || cell.style.textAlign === 'right';
+                        const inlineStyle = cell.getAttribute('style') || '';
+                        const isRed = inlineStyle.includes('8b1a1a') || inlineStyle.includes('9c0006');
+                        const isGreen = inlineStyle.includes('006100') || inlineStyle.includes('c6efce');
+                        const isRed2 = inlineStyle.includes('ffc7ce');
+
+                        // Parse number
+                        let val = text;
+                        if (isNum && text !== '') {
+                            const cleaned = text.replace(/,/g, '');
+                            const n = parseFloat(cleaned);
+                            if (!isNaN(n)) val = n;
+                        }
+
+                        // Determine style
+                        let st;
+                        if (isHeader) {
+                            const bg = (inlineStyle.includes('c8a96e') || inlineStyle.includes('C8A96E')) ? COLOR.header2Bg : COLOR.headerBg;
+                            const fg = (bg === COLOR.header2Bg) ? COLOR.header2Fg : COLOR.headerFg;
+                            st = cellStyle({ bold:true, bg, fg, align: isNum ? 'right' : 'center', sz:9 });
+                        } else if (isEncRow) {
+                            st = cellStyle({ bold:true, bg: COLOR.encRowBg, fg: COLOR.encRowFg, sz:9 });
+                        } else if (isColHead) {
+                            st = cellStyle({ bold:true, bg: COLOR.colHeadBg, fg: COLOR.colHeadFg, sz:8 });
+                        } else if (isTotRow) {
+                            st = cellStyle({ bold:true, bg: COLOR.totRowBg, fg: COLOR.totRowFg, align: isNum ? 'right' : (ci===cells.length-1?'right':'left'), numFmt: (isNum && typeof val==='number') ? numFmt : undefined });
+                        } else if (isSubtotRow) {
+                            st = cellStyle({ bold:true, bg: COLOR.subtotBg, fg: COLOR.subtotFg, align: isNum ? 'right' : 'right', sz:9, numFmt: (isNum && typeof val==='number') ? numFmt : undefined });
+                        } else if (isSpacerRow) {
+                            st = cellStyle({ bg: 'FFFFFF' });
+                        } else if (isGreen) {
+                            st = cellStyle({ bold:true, bg: COLOR.utilBg, fg: COLOR.utilFg, align: 'right', numFmt: typeof val==='number' ? numFmt : undefined });
+                        } else if (isRed || isRed2) {
+                            st = cellStyle({ bold: isTotRow, bg: isRed2 ? COLOR.perdBg : undefined, fg: isRed2 ? COLOR.perdFg : '8B1A1A', align: isNum ? 'right' : 'left', numFmt: (isNum && typeof val==='number') ? numFmt : undefined });
+                        } else {
+                            // Striped
+                            const rowBg = (ri % 2 === 0) ? 'FFFFFF' : COLOR.stripe;
+                            st = cellStyle({ bg: rowBg, align: isNum ? 'right' : 'left', numFmt: (isNum && typeof val==='number') ? numFmt : undefined });
+                        }
+
+                        rowData.push(val);
+                        rowStyles.push(st);
+
+                        // Handle colspan merges
+                        if (colspan > 1) {
+                            const startCol = colIdx;
+                            for (let k = 1; k < colspan; k++) {
+                                rowData.push('');
+                                rowStyles.push(st);
+                            }
+                            merges.push({ s: { r: ri, c: startCol }, e: { r: ri, c: startCol + colspan - 1 } });
+                        }
+                        colIdx += colspan;
+                    });
+
+                    data.push(rowData);
+                    styles.push(rowStyles);
+                });
+
+                const ws = XLSX.utils.aoa_to_sheet(data);
+
+                // Apply styles cell by cell
+                const range = XLSX.utils.decode_range(ws['!ref'] || 'A1');
+                for (let R = range.s.r; R <= range.e.r; R++) {
+                    for (let C = range.s.c; C <= range.e.c; C++) {
+                        const addr = XLSX.utils.encode_cell({ r: R, c: C });
+                        if (!ws[addr]) ws[addr] = { t: 'z', v: '' };
+                        const st = (styles[R] && styles[R][C]) ? styles[R][C] : null;
+                        if (st) ws[addr].s = st;
+                    }
+                }
+
+                // Merges
+                if (merges.length) ws['!merges'] = merges;
+
+                // Auto column widths
+                const colWidths = [];
+                data.forEach(row => {
+                    row.forEach((cell, ci) => {
+                        const len = String(cell).length;
+                        colWidths[ci] = Math.max(colWidths[ci] || 6, Math.min(len + 2, 50));
+                    });
+                });
+                // Override known cols
+                if (tipoRep === 'hoja_trabajo') {
+                    ws['!cols'] = colWidths.map((w, i) => ({ wch: i <= 1 ? 12 : i === 2 ? 36 : 13 }));
+                } else if (tipoRep === 'libro_mayor' || tipoRep === 'libro_diario') {
+                    ws['!cols'] = colWidths.map((w, i) => ({ wch: i === 0 ? 10 : i === 1 ? 10 : i === 2 ? 40 : 14 }));
+                } else {
+                    ws['!cols'] = colWidths.map(w => ({ wch: w }));
+                }
+
+                // Row heights
+                ws['!rows'] = data.map((row, ri) => {
+                    const cls = (styles[ri] && styles[ri][0] && styles[ri][0].fill) ? '' : '';
+                    return { hpt: 16 };
+                });
+
+                return ws;
             }
-            XLSX.utils.book_append_sheet(wb, ws, sheetName.substring(0,31));
 
+            // ── Para Balance: dos columnas lado a lado, igual que la pantalla ──
+            if (filename.includes('balance')) {
+                const cfg = getConfigBalance();
+                const { saldosCuenta, saldosRubro, saldosSubBal } = calcularSaldosRubros(
+                    (() => { const f=getFechas(); return f ? f.fi : new Date(2000,0,1); })(),
+                    (() => { const f=getFechas(); return f ? f.ff : new Date(); })()
+                );
+                const mostrarSubs = !!(document.getElementById('bal_mostrar_subs') && document.getElementById('bal_mostrar_subs').checked);
+                const empresa = (db.config && db.config.nombreEmpresa) || '';
+                const periodoStr = (() => { const f=getFechas(); return f ? `Al ${fmtFecha(f.ffStr)}` : ''; })();
+                const N = '#,##0.00';
+
+                // Columnas: 0=CodA 1=DescA 2=ImpA  |  3=sep  |  4=CodP 5=DescP 6=ImpP
+                // Anchos:      11      32     14         2        11      32     14
+                const COL = { cA:0, dA:1, iA:2, sep:3, cP:4, dP:5, iP:6 };
+                const NCOLS = 7;
+
+                const mkS = (opts={}) => {
+                    const s = {};
+                    s.font = { name:'Calibri', sz:opts.sz||10, bold:!!opts.bold, italic:!!opts.italic, color:{ rgb: opts.fg||'111111' } };
+                    if (opts.bg) s.fill = { fgColor:{ rgb:opts.bg }, patternType:'solid' };
+                    s.alignment = { horizontal: opts.align||'left', vertical:'center', wrapText: !!opts.wrap };
+                    s.border = {
+                        top:    opts.bTop    ? { style: opts.bTop,    color:{ rgb: opts.bTopC    ||'AAAAAA' } } : { style:'none' },
+                        bottom: opts.bBot    ? { style: opts.bBot,    color:{ rgb: opts.bBotC    ||'AAAAAA' } } : { style:'none' },
+                        left:   opts.bLeft   ? { style: opts.bLeft,   color:{ rgb: opts.bLeftC   ||'AAAAAA' } } : { style:'none' },
+                        right:  opts.bRight  ? { style: opts.bRight,  color:{ rgb: opts.bRightC  ||'AAAAAA' } } : { style:'none' },
+                    };
+                    if (opts.nf) s.numFmt = opts.nf;
+                    return s;
+                };
+
+                // Paleta
+                const AZUL    = '1A3C5E';  // azul marino
+                const AZUL2   = '223355';  // azul encabezado cuentas
+                const AZUL_LT = 'DCE8F5';  // azul claro rubro
+                const ORO     = 'C8A96E';  // dorado
+                const ORO_LT  = 'F5EDD5';  // dorado claro total
+                const GRIS    = '374151';  // gris oscuro sub-th
+                const BLANCO  = 'FFFFFF';
+                const RAYA1   = 'F4F7FB';  // stripe azul muy suave
+                const SEP     = 'E8E4DC';  // separador vertical
+
+                // Estilos
+                const sWB  = mkS({});  // celda vacía blanca
+                const sSep = mkS({ bg: SEP });
+                // Encabezado empresa
+                const sEmp = mkS({ bold:true, sz:11, fg:BLANCO, bg:AZUL, align:'left', bBot:'thin', bBotC:'AAAAAA' });
+                // Banner ACTIVO / PASIVO
+                const sBA  = mkS({ bold:true, sz:10, fg:BLANCO, bg:AZUL, align:'center', bBot:'medium', bBotC:AZUL });
+                const sBP  = mkS({ bold:true, sz:10, fg:BLANCO, bg:ORO,  align:'center', bBot:'medium', bBotC:ORO });
+                // Sub-encabezados Cuenta / Descripción / Importe
+                const sTha = mkS({ bold:true, sz:8, fg:BLANCO, bg:AZUL2, align:'left',  bBot:'thin' });
+                const sThaR= mkS({ bold:true, sz:8, fg:BLANCO, bg:AZUL2, align:'right', bBot:'thin' });
+                const sThp = mkS({ bold:true, sz:8, fg:BLANCO, bg:AZUL2, align:'left',  bBot:'thin' });
+                const sThpR= mkS({ bold:true, sz:8, fg:BLANCO, bg:AZUL2, align:'right', bBot:'thin' });
+                // Fila de rubro
+                const sRuA = mkS({ bold:true, sz:9, fg:'0D2A44', bg:AZUL_LT, bBot:'hair', bBotC:'AAAAAA' });
+                const sRuP = mkS({ bold:true, sz:9, fg:'4A2800', bg:'EEE0B8', bBot:'hair', bBotC:'AAAAAA' });
+                // Filas de cuenta
+                const sCnA  = (s) => mkS({ sz:10, fg:'1F2937', bg: s?RAYA1:BLANCO });
+                const sCnAR = (s) => mkS({ sz:10, fg:'1F2937', bg: s?RAYA1:BLANCO, align:'right', nf:N });
+                const sCnP  = (s) => mkS({ sz:10, fg:'1F2937', bg: s?'FDF8EC':BLANCO });
+                const sCnPR = (s) => mkS({ sz:10, fg:'1F2937', bg: s?'FDF8EC':BLANCO, align:'right', nf:N });
+                // Subcuenta header
+                const sShA = mkS({ bold:true, sz:8, fg:'374151', bg:'EBF2FA', bBot:'hair' });
+                const sShP = mkS({ bold:true, sz:8, fg:'374151', bg:'FDF5E4', bBot:'hair' });
+                // Subcuenta item
+                const sSiA  = mkS({ sz:9, fg:'555555', bg:'F5F9FF', italic:true });
+                const sSiAR = mkS({ sz:9, fg:'333333', bg:'F5F9FF', italic:true, align:'right', nf:N });
+                const sSiP  = mkS({ sz:9, fg:'555555', bg:'FFFBF0', italic:true });
+                const sSiPR = mkS({ sz:9, fg:'333333', bg:'FFFBF0', italic:true, align:'right', nf:N });
+                // Subtotal cuenta
+                const sStA  = mkS({ bold:true, sz:9, fg:'1A3C5E', bg:'D8E8F8', align:'right', bTop:'thin', bTopC:'AAAAAA' });
+                const sStAL = mkS({ bold:true, sz:9, fg:'1A3C5E', bg:'D8E8F8', bTop:'thin', bTopC:'AAAAAA' });
+                const sStP  = mkS({ bold:true, sz:9, fg:'7A4F00', bg:'F5E4B0', align:'right', bTop:'thin', bTopC:'AAAAAA' });
+                const sStPL = mkS({ bold:true, sz:9, fg:'7A4F00', bg:'F5E4B0', bTop:'thin', bTopC:'AAAAAA' });
+                // Total rubro
+                const sTrA  = mkS({ bold:true, sz:10, fg:'1A3C5E', bg:ORO_LT, align:'right', nf:N, bTop:'medium', bTopC:ORO, bBot:'medium', bBotC:ORO });
+                const sTrAL = mkS({ bold:true, sz:10, fg:'1A3C5E', bg:ORO_LT, align:'right', bTop:'medium', bTopC:ORO, bBot:'medium', bBotC:ORO });
+                const sTrP  = mkS({ bold:true, sz:10, fg:'7A4F00', bg:ORO_LT, align:'right', nf:N, bTop:'medium', bTopC:ORO, bBot:'medium', bBotC:ORO });
+                const sTrPL = mkS({ bold:true, sz:10, fg:'7A4F00', bg:ORO_LT, align:'right', bTop:'medium', bTopC:ORO, bBot:'medium', bBotC:ORO });
+                // Fila total general
+                const sGA   = mkS({ bold:true, sz:11, fg:BLANCO, bg:'0D2040', align:'right', nf:N, bTop:'medium' });
+                const sGAL  = mkS({ bold:true, sz:11, fg:BLANCO, bg:'0D2040', align:'right', bTop:'medium' });
+                const sGP   = mkS({ bold:true, sz:11, fg:BLANCO, bg:'7C5000', align:'right', nf:N, bTop:'medium' });
+                const sGPL  = mkS({ bold:true, sz:11, fg:BLANCO, bg:'7C5000', align:'right', bTop:'medium' });
+
+                // ── Recolectar filas de cada lado de forma independiente ──
+                // Cada lado genera: [{vals:[cód,desc,imp], sts:[s,s,s], h:16, isTot:bool}]
+                const collectLado = (rubros, signo, isActivo) => {
+                    const out = [];
+                    const stRu  = isActivo ? sRuA  : sRuP;
+                    const stCn  = isActivo ? sCnA  : sCnP;
+                    const stCnR = isActivo ? sCnAR : sCnPR;
+                    const stSh  = isActivo ? sShA  : sShP;
+                    const stSiL = isActivo ? sSiA  : sSiP;
+                    const stSiR = isActivo ? sSiAR : sSiPR;
+                    const stStL = isActivo ? sStAL : sStPL;
+                    const stStR = isActivo ? sStA  : sStP;
+                    const stTrL = isActivo ? sTrAL : sTrPL;
+                    const stTrR = isActivo ? sTrA  : sTrP;
+                    let total = 0, stripe = false;
+
+                    rubros.forEach(rubro => {
+                        const saldoR = Math.round(((saldosRubro[rubro.codigo]||0)*signo)*100)/100;
+                        if (Math.abs(saldoR) < 0.001) return;
+                        out.push({ v:[rubro.codigo, rubro.nombre.toUpperCase(), ''], s:[stRu,stRu,stRu], h:15, mergeDesc:true });
+
+                        const cuentas = db.cuentas.filter(c=>c.rubroPadre===rubro.codigo).sort((a,b)=>a.codigo.localeCompare(b.codigo));
+                        cuentas.forEach(c => {
+                            const net = Math.round(((saldosCuenta[c.codigo]||0)*signo)*100)/100;
+                            if (Math.abs(net) < 0.001) return;
+                            if (mostrarSubs) {
+                                out.push({ v:[c.codigo, c.nombre, ''], s:[stSh,stSh,stSh], h:14, mergeDesc:true });
+                                const subs = db.subcuentas.filter(s=>s.cuentaPadre===c.codigo).sort((a,b)=>a.codigo.localeCompare(b.codigo));
+                                subs.forEach(s => {
+                                    const ss = saldosSubBal[s.codigo];
+                                    if (!ss) return;
+                                    const netS = Math.round(((ss.debe||0)-(ss.haber||0))*signo*100)/100;
+                                    if (Math.abs(netS) < 0.001) return;
+                                    out.push({ v:[s.codigo, s.nombre, Math.abs(netS)], s:[stSiL,stSiL,stSiR], h:14 });
+                                });
+                                out.push({ v:['', 'Total '+c.nombre, Math.abs(net)], s:[stStL,stStL,stStR], h:15, mergeCode:true });
+                            } else {
+                                out.push({ v:[c.codigo, c.nombre, Math.abs(net)], s:[stCn(stripe),stCn(stripe),stCnR(stripe)], h:15 });
+                                stripe = !stripe;
+                            }
+                        });
+
+                        out.push({ v:['', 'Total '+rubro.nombre+':', Math.abs(saldoR)], s:[stTrL,stTrL,stTrR], h:16, mergeCode:true, isTot:true });
+                        out.push({ v:['','',''], s:[mkS({bg:isActivo?'EEF4FB':'FDF8EE'}),mkS({bg:isActivo?'EEF4FB':'FDF8EE'}),mkS({bg:isActivo?'EEF4FB':'FDF8EE'})], h:5 });
+                        total += Math.abs(saldoR);
+                    });
+                    return { rows: out, total };
+                };
+
+                const { rows: rowsAct, total: totAct } = collectLado(cfg.activo,  1, true);
+                const { rows: rowsPas, total: totPas } = collectLado(cfg.pasivo, -1, false);
+
+                // ── Ensamblar hoja ──
+                // Layout:
+                // Fila 0: Empresa (cols 0-6 merge) — fondo azul marino
+                // Fila 1: Balance General + fecha (cols 0-6 merge) — fondo azul marino
+                // Fila 2: vacía
+                // Fila 3: "ACTIVO" (0-2) | sep | "PASIVO Y CAPITAL" (4-6)
+                // Fila 4: Cuenta|Descripción|Importe (0-2) | sep | Cuenta|Descripción|Importe (4-6)
+                // Filas 5+: datos lado a lado (rellenando el más corto con blancos)
+                // Fila N: TOTAL ACTIVO | sep | TOTAL PASIVO+CAPITAL
+
+                const ws = {};
+                const wsmerges = [];
+                const wsrows = [];
+                let ri = 0;
+
+                const setCell = (r, c, v, style) => {
+                    const addr = XLSX.utils.encode_cell({r, c});
+                    const t = typeof v === 'number' ? 'n' : (v===''||v==null ? 'z' : 's');
+                    ws[addr] = { t, v: v===''||v==null ? undefined : v };
+                    if (style) ws[addr].s = style;
+                };
+                const setRow = (r, height) => { wsrows[r] = { hpt: height }; };
+                const addMerge = (r1,c1,r2,c2) => wsmerges.push({ s:{r:r1,c:c1}, e:{r:r2,c:c2} });
+
+                // Fila 0: empresa y título — banner azul marino
+                setRow(ri, 20);
+                for(let c=0;c<NCOLS;c++) setCell(ri, c, '', sEmp);
+                setCell(ri, 0, empresa, mkS({ bold:true, sz:10, fg:BLANCO, bg:AZUL, align:'left' }));
+                addMerge(ri,0,ri,NCOLS-1);
+                ri++;
+
+                setRow(ri, 16);
+                for(let c=0;c<NCOLS;c++) setCell(ri, c, '', mkS({ bold:true, sz:10, fg:'C8D8E8', bg:AZUL, align:'left' }));
+                setCell(ri, 0, `Balance General    ${periodoStr}`, mkS({ bold:false, sz:10, fg:'C8D8E8', bg:AZUL, align:'left' }));
+                addMerge(ri,0,ri,NCOLS-1);
+                ri++;
+
+                // Fila vacía
+                setRow(ri, 4);
+                for(let c=0;c<NCOLS;c++) setCell(ri, c, '', mkS({ bg:'E0E8F0' }));
+                ri++;
+
+                // Banners ACTIVO | sep | PASIVO Y CAPITAL
+                setRow(ri, 18);
+                setCell(ri,0,'ACTIVO',sBA); setCell(ri,1,'',sBA); setCell(ri,2,'',sBA);
+                addMerge(ri,0,ri,2);
+                setCell(ri,COL.sep,'',sSep);
+                setCell(ri,4,'PASIVO Y CAPITAL',sBP); setCell(ri,5,'',sBP); setCell(ri,6,'',sBP);
+                addMerge(ri,4,ri,6);
+                ri++;
+
+                // Sub-encabezados
+                setRow(ri, 13);
+                setCell(ri,0,'CUENTA',sTha); setCell(ri,1,'DESCRIPCIÓN',sTha); setCell(ri,2,'IMPORTE',sThaR);
+                setCell(ri,COL.sep,'',sSep);
+                setCell(ri,4,'CUENTA',sThp); setCell(ri,5,'DESCRIPCIÓN',sThp); setCell(ri,6,'IMPORTE',sThpR);
+                ri++;
+
+                // Datos lado a lado
+                const maxDataRows = Math.max(rowsAct.length, rowsPas.length);
+                for (let i=0; i<maxDataRows; i++) {
+                    const a = rowsAct[i];
+                    const p = rowsPas[i];
+                    const height = Math.max(a?a.h:14, p?p.h:14);
+                    setRow(ri, height);
+
+                    if (a) {
+                        setCell(ri,0,a.v[0],a.s[0]);
+                        setCell(ri,1,a.v[1],a.s[1]);
+                        setCell(ri,2,a.v[2],a.s[2]);
+                        if (a.mergeDesc) addMerge(ri,1,ri,2);
+                        if (a.mergeCode) addMerge(ri,0,ri,1);
+                    } else {
+                        setCell(ri,0,'',sWB); setCell(ri,1,'',sWB); setCell(ri,2,'',sWB);
+                    }
+
+                    setCell(ri,COL.sep,'',sSep);
+
+                    if (p) {
+                        setCell(ri,4,p.v[0],p.s[0]);
+                        setCell(ri,5,p.v[1],p.s[1]);
+                        setCell(ri,6,p.v[2],p.s[2]);
+                        if (p.mergeDesc) addMerge(ri,5,ri,6);
+                        if (p.mergeCode) addMerge(ri,4,ri,5);
+                    } else {
+                        setCell(ri,4,'',sWB); setCell(ri,5,'',sWB); setCell(ri,6,'',sWB);
+                    }
+                    ri++;
+                }
+
+                // Fila vacía antes de totales
+                setRow(ri, 4);
+                for(let c=0;c<NCOLS;c++) setCell(ri,c,'',mkS({ bg:'EEE8DC' }));
+                ri++;
+
+                // Totales generales
+                setRow(ri, 18);
+                setCell(ri,0,'',sGAL); setCell(ri,1,'TOTAL ACTIVO:',sGAL); setCell(ri,2,totAct,sGA);
+                addMerge(ri,0,ri,1);
+                setCell(ri,COL.sep,'',sSep);
+                setCell(ri,4,'',sGPL); setCell(ri,5,'TOTAL PASIVO+CAPITAL:',sGPL); setCell(ri,6,totPas,sGP);
+                addMerge(ri,4,ri,5);
+                ri++;
+
+                // Indicador cuadre
+                const cuadra = Math.abs(totAct-totPas) < 0.05;
+                setRow(ri, 14);
+                const sCuadra = mkS({ bold:true, sz:9, fg: cuadra?'006100':'9C0006', bg: cuadra?'C6EFCE':'FFC7CE', align:'center' });
+                const cuadraMsg = cuadra ? '✓ Balance cuadra' : `⚠ Diferencia: ${(totAct-totPas).toFixed(2)}`;
+                for(let c=0;c<NCOLS;c++) setCell(ri, c, c===0?cuadraMsg:'', sCuadra);
+                addMerge(ri,0,ri,NCOLS-1);
+                ri++;
+
+                ws['!ref'] = XLSX.utils.encode_range({ s:{r:0,c:0}, e:{r:ri-1,c:NCOLS-1} });
+                ws['!cols'] = [{ wch:11 },{ wch:32 },{ wch:14 }, { wch:1 }, { wch:11 },{ wch:32 },{ wch:14 }];
+                ws['!rows'] = wsrows;
+                ws['!merges'] = wsmerges;
+
+                XLSX.utils.book_append_sheet(wb, ws, 'Balance General');
+            } else {
+                // Un solo reporte lineal
+                const mainTable = tables[tables.length - 1]; // última tabla = la de datos
+                const ws = tableToStyledWS(mainTable);
+                XLSX.utils.book_append_sheet(wb, ws, sheetName.substring(0, 31));
+            }
+
+            // ── Hoja de metadatos ──
+            const empresa = (db.config && db.config.nombreEmpresa) || 'ContaApp Pro';
             const meta = XLSX.utils.aoa_to_sheet([
-                ['Reporte', sheetName],
-                ['Generado', new Date().toLocaleString('es-MX')],
-                ['Sistema', 'ContaApp Pro'],
+                ['Reporte',   sheetName],
+                ['Empresa',   empresa],
+                ['Generado',  new Date().toLocaleString('es-MX')],
+                ['Sistema',   'ContaApp Pro'],
             ]);
+            meta['A1'].s = cellStyle({ bold:true, fg: COLOR.headerFg, bg: COLOR.headerBg });
+            meta['A2'].s = cellStyle({ bold:true, fg: COLOR.headerFg, bg: COLOR.headerBg });
+            meta['A3'].s = cellStyle({ bold:true, fg: COLOR.headerFg, bg: COLOR.headerBg });
+            meta['A4'].s = cellStyle({ bold:true, fg: COLOR.headerFg, bg: COLOR.headerBg });
+            meta['!cols'] = [{ wch: 12 }, { wch: 40 }];
             XLSX.utils.book_append_sheet(wb, meta, 'Info');
-            XLSX.writeFile(wb, filename);
+
+            XLSX.writeFile(wb, filename, { bookSST: false, type: 'binary', cellStyles: true });
         }
 
         // ══════════════════════════════════════════════════════════
@@ -4708,21 +5310,55 @@
             if (!config.length) return { vacio: true };
             const saldosSub = calcularSaldosSubcuentasER(fechas.fi, fechas.ff);
             const metodo = (document.getElementById('er_metodo')||{}).value || 'PERPETUOS';
-            return { html: buildERHtml(config, saldosSub, fechas, metodo, true) };
+            const mostrarSubs = !!(document.getElementById('er_mostrar_subs') && document.getElementById('er_mostrar_subs').checked);
+            return { html: buildERHtml(config, saldosSub, fechas, metodo, mostrarSubs, true) };
         }
 
         function buildEstadoResultadosHTML(fechas) {
             const config = getConfigER();
             const saldosSub = calcularSaldosSubcuentasER(fechas.fi, fechas.ff);
             const metodo = (document.getElementById('er_metodo')||{}).value || 'PERPETUOS';
-            const tabla = buildERHtml(config, saldosSub, fechas, metodo, false);
+            const mostrarSubs = !!(document.getElementById('er_mostrar_subs') && document.getElementById('er_mostrar_subs').checked);
+            const tabla = buildERHtml(config, saldosSub, fechas, metodo, mostrarSubs, false);
             return wrapTable(`Estado de Resultados (${metodo})`, fechas, tabla, 'resultados');
         }
 
-        function buildERHtml(config, saldosSub, fechas, metodo, inline) {
+        function buildERHtml(config, saldosSub, fechas, metodo, mostrarSubs, inline) {
             let rows = '';
             let utilidadNeta = 0;
             const fmtV = v => v.toLocaleString('es-MX',{minimumFractionDigits:2,maximumFractionDigits:2});
+
+            // Helper: render items con opción de subcuentas
+            function renderItems(items, codRubro) {
+                let out = '';
+                items.forEach(it => {
+                    const cls = it.saldo < 0 ? 'style="color:#8b1a1a"' : '';
+                    if (mostrarSubs) {
+                        // Cuenta como sub-encabezado
+                        out += `<tr class="col-head"><td>${it.cod}</td><td colspan="2">${it.saldo<0?'(-) ':''}${it.nom}</td></tr>`;
+                        // Subcuentas
+                        const subs = db.subcuentas.filter(s => s.cuentaPadre === it.cod);
+                        subs.forEach(s => {
+                            const ss = saldosSub[s.codigo];
+                            if (!ss) return;
+                            // Para ER: SUMA=ingresos (haber-debe), RESTA/COSTO=gastos (debe-haber)
+                            const netS = Math.round(((ss.haber||0) - (ss.debe||0)) * 100) / 100;
+                            const netSResta = Math.round(((ss.debe||0) - (ss.haber||0)) * 100) / 100;
+                            const netSDisplay = it.saldo >= 0 ? Math.abs(it.saldo > 0 ? netS : netSResta) : Math.abs(netSResta);
+                            // Use same sign logic as parent
+                            const ssNet = saldosSub[s.codigo];
+                            const rawNet = ssNet ? Math.round(((ssNet.haber||0)-(ssNet.debe||0))*100)/100 : 0;
+                            if (Math.abs(rawNet) < 0.001) return;
+                            const clsS = rawNet < 0 ? 'style="color:#8b1a1a;padding-left:16px;"' : 'style="padding-left:16px;"';
+                            out += `<tr><td style="color:#aaa;font-size:0.7rem;padding-left:16px;">${s.codigo}</td><td ${clsS}>${rawNet<0?'(-) ':''}${s.nombre}</td><td class="num" style="${rawNet<0?'color:#8b1a1a':''}">${fmtV(Math.abs(rawNet))}</td></tr>`;
+                        });
+                        out += `<tr style="background:#f5f5f2;"><td colspan="2" style="text-align:right;font-size:0.75rem;color:#555;padding-right:8px;">Subtotal ${it.nom}:</td><td class="num" style="font-size:0.75rem;font-weight:600;" ${cls}>${fmtV(Math.abs(it.saldo))}</td></tr>`;
+                    } else {
+                        out += `<tr><td style="color:#888;font-size:0.72rem">${it.cod}</td><td ${cls}>${it.saldo<0?'(-) ':'   '}${it.nom}</td><td class="num" ${cls}>${fmtV(Math.abs(it.saldo))}</td></tr>`;
+                    }
+                });
+                return out;
+            }
 
             config.forEach(rubro => {
                 const { accion, codigo, nombre } = rubro;
@@ -4740,10 +5376,7 @@
                         rows += `<tr class="enc-row"><td colspan="3">${codigo} — ${nombre.toUpperCase()}</td></tr>`;
                         rows += `<tr><td></td><td>Inventario Inicial</td><td class="num">${fmtV(invIni)}</td></tr>`;
                         rows += `<tr class="col-head"><td colspan="3">Más: Compras Netas</td></tr>`;
-                        compItems.forEach(it => {
-                            const cls = it.saldo < 0 ? 'style="color:#8b1a1a"' : '';
-                            rows += `<tr><td style="color:#888;font-size:0.72rem">${it.cod}</td><td ${cls}>${it.saldo<0?'(-) ':'   '}${it.nom}</td><td class="num" ${cls}>${fmtV(Math.abs(it.saldo))}</td></tr>`;
-                        });
+                        rows += renderItems(compItems, codigo);
                         rows += `<tr><td></td><td style="font-style:italic;">(=) Disponible</td><td class="num" style="border-top:1px solid #ccc">${fmtV(totalMerc)}</td></tr>`;
                         rows += `<tr><td></td><td style="color:#8b1a1a">(-) Inventario Final</td><td class="num">${fmtV(invFin)}</td></tr>`;
                         rows += `<tr class="tot-row"><td colspan="2" style="text-align:right;">${nombre} — Costo Neto:</td><td class="num">${fmtV(totalRubro)}</td></tr>`;
@@ -4763,10 +5396,7 @@
                 if (items.length === 0) return; // rubro vacío, omitir
 
                 rows += `<tr class="enc-row"><td colspan="3">${codigo} — ${nombre.toUpperCase()}</td></tr>`;
-                items.forEach(it => {
-                    const cls = it.saldo < 0 ? 'style="color:#8b1a1a"' : '';
-                    rows += `<tr><td style="color:#888;font-size:0.72rem">${it.cod}</td><td ${cls}>${it.saldo<0?'(-) ':'   '}${it.nom}</td><td class="num" ${cls}>${fmtV(Math.abs(it.saldo))}</td></tr>`;
-                });
+                rows += renderItems(items, codigo);
                 const labelTot = accion === 'COSTO' ? `${nombre} — Costo Neto:` : `${nombre} — Importe Neto:`;
                 rows += `<tr class="tot-row"><td colspan="2" style="text-align:right;">${labelTot}</td><td class="num">${fmtV(totalRubro)}</td></tr>`;
                 rows += `<tr class="spacer-row"><td colspan="3"></td></tr>`;
@@ -4878,24 +5508,26 @@
                     saldosRubro[c.rubroPadre] += net;
                 }
             });
-            return { saldosCuenta, saldosRubro };
+            return { saldosCuenta, saldosRubro, saldosSubBal: saldosSub };
         }
 
         function buildTablaInlineBalance(fechas) {
             const cfg = getConfigBalance();
-            const { saldosCuenta, saldosRubro } = calcularSaldosRubros(fechas.fi, fechas.ff);
-            const html = buildBalanceHtml(cfg, saldosCuenta, saldosRubro, true);
+            const { saldosCuenta, saldosRubro, saldosSubBal } = calcularSaldosRubros(fechas.fi, fechas.ff);
+            const mostrarSubs = !!(document.getElementById('bal_mostrar_subs') && document.getElementById('bal_mostrar_subs').checked);
+            const html = buildBalanceHtml(cfg, saldosCuenta, saldosRubro, saldosSubBal, mostrarSubs, true);
             return { html };
         }
 
         function buildBalanceGeneralHTML(fechas) {
             const cfg = getConfigBalance();
-            const { saldosCuenta, saldosRubro } = calcularSaldosRubros(fechas.fi, fechas.ff);
-            const tabla = buildBalanceHtml(cfg, saldosCuenta, saldosRubro, false);
+            const { saldosCuenta, saldosRubro, saldosSubBal } = calcularSaldosRubros(fechas.fi, fechas.ff);
+            const mostrarSubs = !!(document.getElementById('bal_mostrar_subs') && document.getElementById('bal_mostrar_subs').checked);
+            const tabla = buildBalanceHtml(cfg, saldosCuenta, saldosRubro, saldosSubBal, mostrarSubs, false);
             return wrapTable('Balance General', fechas, tabla, 'balance');
         }
 
-        function buildBalanceHtml(cfg, saldosCuenta, saldosRubro, inline) {
+        function buildBalanceHtml(cfg, saldosCuenta, saldosRubro, saldosSubBal, mostrarSubs, inline) {
             const fmtV = v => v.toLocaleString('es-MX',{minimumFractionDigits:2,maximumFractionDigits:2});
 
             function buildLado(rubros, signo) {
@@ -4909,7 +5541,23 @@
                         const net = (saldosCuenta[c.codigo] || 0) * signo;
                         if (Math.abs(net) < 0.001) return;
                         const cls = net < 0 ? 'style="color:#8b1a1a"' : '';
-                        rows += `<tr><td style="color:#888;font-size:0.72rem">${c.codigo}</td><td ${cls}>${net<0?'(-) ':'   '}${c.nombre}</td><td class="num" ${cls}>${fmtV(Math.abs(net))}</td></tr>`;
+                        if (mostrarSubs) {
+                            // Fila de cuenta como sub-encabezado
+                            rows += `<tr class="col-head"><td>${c.codigo}</td><td colspan="2">${net<0?'(-) ':''}${c.nombre}</td></tr>`;
+                            // Filas de subcuentas
+                            const subs = db.subcuentas.filter(s => s.cuentaPadre === c.codigo);
+                            subs.forEach(s => {
+                                const ss = saldosSubBal[s.codigo];
+                                if (!ss) return;
+                                const netS = Math.round(((ss.debe||0) - (ss.haber||0)) * 100) / 100 * signo;
+                                if (Math.abs(netS) < 0.001) return;
+                                const clsS = netS < 0 ? 'style="color:#8b1a1a"' : '';
+                                rows += `<tr><td style="color:#aaa;font-size:0.7rem;padding-left:16px;">${s.codigo}</td><td ${clsS} style="padding-left:16px;">${netS<0?'(-) ':''}${s.nombre}</td><td class="num" ${clsS}>${fmtV(Math.abs(netS))}</td></tr>`;
+                            });
+                            rows += `<tr style="background:#f5f5f2;"><td colspan="2" style="text-align:right;font-size:0.75rem;color:#555;padding-right:8px;">Subtotal ${c.nombre}:</td><td class="num" style="font-size:0.75rem;font-weight:600;" ${cls}>${fmtV(Math.abs(net))}</td></tr>`;
+                        } else {
+                            rows += `<tr><td style="color:#888;font-size:0.72rem">${c.codigo}</td><td ${cls}>${net<0?'(-) ':'   '}${c.nombre}</td><td class="num" ${cls}>${fmtV(Math.abs(net))}</td></tr>`;
+                        }
                     });
                     rows += `<tr class="tot-row"><td colspan="2" style="text-align:right;">Total ${rubro.nombre}:</td><td class="num">${fmtV(Math.abs(saldoR))}</td></tr>`;
                     rows += `<tr class="spacer-row"><td colspan="3"></td></tr>`;
@@ -4924,8 +5572,6 @@
             const cuadra = Math.abs(totAct - totPas) < 1;
             const estCuadre = cuadra ? 'color:#006100;background:#c6efce' : 'color:#9c0006;background:#ffc7ce';
 
-            // Tabla de dos columnas: Activo | Pasivo+Capital
-            // Usar tabla exterior para alinear los totales exactamente a la misma altura
             const html = `
             <table style="width:100%;border-collapse:separate;border-spacing:16px 0;" class="balance-outer">
                 <tr>
